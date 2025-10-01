@@ -14,10 +14,10 @@ export const useAudioRecorder = (onRecordingComplete: (audioDataUri: string) => 
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      setIsRecording(true);
-      audioChunksRef.current = [];
+      
       const recorder = new MediaRecorder(stream);
       mediaRecorderRef.current = recorder;
+      audioChunksRef.current = [];
 
       recorder.addEventListener('dataavailable', (event) => {
         audioChunksRef.current.push(event.data);
@@ -32,9 +32,12 @@ export const useAudioRecorder = (onRecordingComplete: (audioDataUri: string) => 
           onRecordingComplete(base64String);
         };
         stream.getTracks().forEach(track => track.stop()); // Stop the mic access
+        setIsRecording(false);
       });
-
+      
       recorder.start();
+      setIsRecording(true);
+
     } catch (err) {
       console.error('Failed to start recording', err);
       toast({
@@ -47,10 +50,9 @@ export const useAudioRecorder = (onRecordingComplete: (audioDataUri: string) => 
   }, [isRecording, onRecordingComplete, toast]);
 
   const stopRecording = useCallback(() => {
-    if (!isRecording || !mediaRecorderRef.current) return;
+    if (!isRecording || !mediaRecorderRef.current || mediaRecorderRef.current.state === 'inactive') return;
     
     mediaRecorderRef.current.stop();
-    setIsRecording(false);
   }, [isRecording]);
 
   return { isRecording, startRecording, stopRecording };

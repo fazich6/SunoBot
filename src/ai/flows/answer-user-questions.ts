@@ -1,28 +1,13 @@
 'use server';
 
-/**
- * @fileOverview This file defines a Genkit flow for answering user questions in Urdu or English.
- * 
- * It uses a prompt to generate human-like answers based on the user's query.
- * The flow takes a question string as input and returns an answer string.
- * 
- * @exports answerUserQuestions - An async function that takes a question and returns an answer.
- * @exports AnswerUserQuestionsInput - The input type for the answerUserQuestions function.
- * @exports AnswerUserQuestionsOutput - The return type for the answerUserQuestions function.
- */
-
 import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import {
+  AnswerUserQuestionsInputSchema,
+  type AnswerUserQuestionsInput,
+  AnswerUserQuestionsOutputSchema,
+  type AnswerUserQuestionsOutput,
+} from '@/ai/schemas';
 
-const AnswerUserQuestionsInputSchema = z.object({
-  question: z.string().describe('The user\'s question in Urdu or English.'),
-});
-export type AnswerUserQuestionsInput = z.infer<typeof AnswerUserQuestionsInputSchema>;
-
-const AnswerUserQuestionsOutputSchema = z.object({
-  answer: z.string().describe('The AI-generated answer to the user\'s question.'),
-});
-export type AnswerUserQuestionsOutput = z.infer<typeof AnswerUserQuestionsOutputSchema>;
 
 export async function answerUserQuestions(input: AnswerUserQuestionsInput): Promise<AnswerUserQuestionsOutput> {
   return answerUserQuestionsFlow(input);
@@ -32,11 +17,32 @@ const answerUserQuestionsPrompt = ai.definePrompt({
   name: 'answerUserQuestionsPrompt',
   input: {schema: AnswerUserQuestionsInputSchema},
   output: {schema: AnswerUserQuestionsOutputSchema},
-  prompt: `You are a helpful and friendly AI assistant that can answer questions in both Urdu and English.
+  prompt: `You are a helpful AI personal assistant. Your primary role is to be a knowledgeable and respectful Islamic scholar, providing answers from the Quran and Sunnah when asked. You are also an expert in daily life topics such as recipes, health tips, and kids' stories. Answer questions in a simple, helpful, and human-like style.
 
-  Please provide a simple, helpful, and human-like answer to the following question.  If you don't know the answer, say so.
+When answering any questions related to health, medicine, or pharmacy, you MUST include the following disclaimer at the end of your answer: "Disclaimer: I am an AI assistant and not a real healthcare professional. Please consult a doctor or pharmacist for any medical advice." Only use this disclaimer for health-related questions.
 
-  Question: {{{question}}}`,
+Your task is to do two things:
+1. If audio is provided, transcribe the user's spoken question. If text is provided, use that as the question.
+2. Provide a helpful answer to the transcribed/provided question in the specified language, using the conversation history for context.
+
+When the user requests Urdu, you MUST reply in the standard Urdu (Nastaliq) script. Do NOT use Roman Urdu. When transcribing Urdu, you MUST also use the Nastaliq script.
+
+When asked for a Surah or verse from the Quran, provide the Arabic text along with its translation in the user's specified language.
+
+Conversation History:
+{{#each conversationHistory}}
+{{role}}: {{text}}
+{{/each}}
+
+Current Language: {{{language}}}
+
+{{#if audioDataUri}}
+Audio Query:
+{{media url=audioDataUri}}
+{{else}}
+Text Query: {{{question}}}
+{{/if}}
+`,
 });
 
 const answerUserQuestionsFlow = ai.defineFlow(

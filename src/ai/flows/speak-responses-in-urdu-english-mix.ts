@@ -3,21 +3,16 @@
  * @fileOverview An AI agent that speaks responses in a natural-sounding mix of Urdu and English.
  *
  * - speakResponsesInUrduEnglishMix - A function that generates spoken responses in a mix of Urdu and English.
- * - SpeakResponsesInUrduEnglishMixInput - The input type for the speakResponsesInUrduEnglishMix function.
- * - SpeakResponsesInUrduEnglishMixOutput - The return type for the speakResponsesInUrduEnglishMix function.
  */
 
 import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
 import wav from 'wav';
-
-const SpeakResponsesInUrduEnglishMixInputSchema = z.string().describe('The text to be spoken in a mix of Urdu and English.');
-export type SpeakResponsesInUrduEnglishMixInput = z.infer<typeof SpeakResponsesInUrduEnglishMixInputSchema>;
-
-const SpeakResponsesInUrduEnglishMixOutputSchema = z.object({
-  media: z.string().describe('The audio data URI of the spoken text in WAV format.'),
-});
-export type SpeakResponsesInUrduEnglishMixOutput = z.infer<typeof SpeakResponsesInUrduEnglishMixOutputSchema>;
+import {
+  SpeakResponsesInUrduEnglishMixInputSchema,
+  type SpeakResponsesInUrduEnglishMixInput,
+  SpeakResponsesInUrduEnglishMixOutputSchema,
+  type SpeakResponsesInUrduEnglishMixOutput,
+} from '@/ai/schemas';
 
 export async function speakResponsesInUrduEnglishMix(input: SpeakResponsesInUrduEnglishMixInput): Promise<SpeakResponsesInUrduEnglishMixOutput> {
   return speakResponsesInUrduEnglishMixFlow(input);

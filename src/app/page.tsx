@@ -1,10 +1,94 @@
+'use client';
+
+import { useState } from 'react';
 import SunoBot from '@/components/SunoBot';
+import Analyze from '@/components/Analyze';
+import Homework from '@/components/Homework';
+import Reminders from '@/components/Reminders';
+import { Button } from '@/components/ui/button';
+import { MessageSquare, Camera, BookOpen, Bell } from 'lucide-react';
+
+type ActiveView = 'chat' | 'analyze' | 'homework' | 'reminders';
+
+const NavItem = ({
+  view,
+  activeView,
+  setView,
+  icon: Icon,
+  label,
+}: {
+  view: ActiveView;
+  activeView: ActiveView;
+  setView: (view: ActiveView) => void;
+  icon: React.ElementType;
+  label: string;
+}) => (
+  <Button
+    variant="ghost"
+    className={`flex flex-col items-center h-full rounded-none justify-center gap-1 text-xs w-full ${
+      activeView === view
+        ? 'text-primary bg-primary/10'
+        : 'text-muted-foreground'
+    }`}
+    onClick={() => setView(view)}
+  >
+    <Icon size={20} />
+    <span>{label}</span>
+  </Button>
+);
 
 export default function Home() {
+  const [activeView, setActiveView] = useState<ActiveView>('chat');
+
+  const renderView = () => {
+    switch (activeView) {
+      case 'chat':
+        return <SunoBot />;
+      case 'analyze':
+        return <Analyze />;
+      case 'homework':
+        return <Homework />;
+      case 'reminders':
+        return <Reminders />;
+      default:
+        return <SunoBot />;
+    }
+  };
+
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
       <div className="w-full max-w-md h-full md:h-[90vh] md:max-h-[800px] bg-background md:rounded-2xl shadow-2xl flex flex-col overflow-hidden relative font-body">
-        <SunoBot />
+        <div className="flex-grow overflow-hidden">{renderView()}</div>
+        <nav className="flex justify-around border-t">
+          <NavItem
+            view="chat"
+            activeView={activeView}
+            setView={setActiveView}
+            icon={MessageSquare}
+            label="Chat"
+          />
+          <NavItem
+            view="analyze"
+            activeView={activeView}
+            setView={setActiveView}
+            icon={Camera}
+            label="Analyze"
+          />
+          <NavItem
+            view="homework"
+            activeView={activeView}
+            setView={setActiveView}
+            icon={BookOpen}
+            label="Homework"
+          />
+          <NavItem
+            view="reminders"
+            activeView={activeView}
+            setView={setActiveView}
+            icon={Bell}
+            label="Reminders"
+          />
+        </nav>
       </div>
     </main>
   );

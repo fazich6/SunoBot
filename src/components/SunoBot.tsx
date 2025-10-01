@@ -1,16 +1,25 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { getTranscription, getAIAnswer, getSpokenResponse } from '@/app/actions';
+import { getAIAnswer, getSpokenResponse } from '@/app/actions';
 import { useAudioRecorder } from '@/lib/hooks/use-audio-recorder';
 import { SunoBotLogo, ThinkingIcon, Volume2 } from '@/components/icons';
 import HelperPacks from '@/components/HelperPacks';
 import ConversationView from '@/components/ConversationView';
 import MicrophoneButton from '@/components/MicrophoneButton';
 import { useToast } from "@/hooks/use-toast";
-import { Bookmark } from 'lucide-react';
+import { Bookmark,Languages } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export type Message = {
   id: number;
@@ -26,24 +35,33 @@ export default function SunoBot() {
   const [status, setStatus] = useState<Status>('idle');
   const [bookmarkedIds, setBookmarkedIds] = useState<Set<number>>(new Set());
   const [showFavorites, setShowFavorites] = useState(false);
+  const [language, setLanguage] = useState<'English' | 'Urdu'>('English');
   const audioPlayerRef = useRef<HTMLAudioElement | null>(null);
   const { toast } = useToast();
 
   const handleRecordingComplete = async (audioDataUri: string) => {
     setStatus('thinking');
     try {
-      const { transcription } = await getTranscription({ audioDataUri });
-      if (!transcription) {
+      const { answer, transcribedText } = await getAIAnswer({ 
+        audioDataUri,
+        conversationHistory: conversation.slice(-5).map(m => ({role: m.role, text: m.text})),
+        language
+       });
+
+      if (!transcribedText) {
         throw new Error('Transcription failed.');
       }
       
-      const userMessage: Message = { id: Date.now(), role: 'user', text: transcription };
-      setConversation(prev => [...prev, userMessage]);
+      const userMessage: Message = { id: Date.now(), role: 'user', text: transcribedText };
+      const assistantMessage: Message = { id: Date.now() + 1, role: 'assistant', text: answer, audioUrl: '' };
+
+      setConversation(prev => [...prev, userMessage, assistantMessage]);
       setShowFavorites(false);
       
-      await processQuery(transcription);
+      await playResponse(answer, Date.now() + 1);
+
     } catch (error) {
-      console.error('Error during transcription:', error);
+      console.error('Error during transcription and response:', error);
       toast({
         title: "Error",
         description: "Sorry, I couldn't understand that. Please try again.",
@@ -66,11 +84,32 @@ export default function SunoBot() {
   const processQuery = async (query: string) => {
     try {
       setStatus('thinking');
-      const { answer } = await getAIAnswer({ question: query });
-      const { media } = await getSpokenResponse(answer);
+      const { answer } = await getAIAnswer({
+        question: query,
+        conversationHistory: conversation.slice(-5).map(m => ({role: m.role, text: m.text})),
+        language
+      });
 
-      const assistantMessage: Message = { id: Date.now() + 1, role: 'assistant', text: answer, audioUrl: media };
+      const assistantMessage: Message = { id: Date.now() + 1, role: 'assistant', text: answer, audioUrl: '' };
       setConversation(prev => [...prev, assistantMessage]);
+
+      await playResponse(answer, assistantMessage.id);
+    } catch (error) {
+      console.error('Error processing query:', error);
+       toast({
+        title: "Error",
+        description: "Something went wrong while getting your answer. Please try again.",
+        variant: "destructive",
+      });
+      setStatus('idle');
+    }
+  };
+
+  const playResponse = async (text: string, messageId: number) => {
+    try {
+      const { media } = await getSpokenResponse(text);
+
+      setConversation(prev => prev.map(m => m.id === messageId ? {...m, audioUrl: media} : m));
 
       if (audioPlayerRef.current) {
         audioPlayerRef.current.pause();
@@ -85,15 +124,16 @@ export default function SunoBot() {
         audioPlayerRef.current = null;
       };
     } catch (error) {
-      console.error('Error processing query:', error);
+       console.error('Error playing response:', error);
        toast({
-        title: "Error",
-        description: "Something went wrong while getting your answer. Please try again.",
+        title: "Audio Error",
+        description: "Could not play the audio response.",
         variant: "destructive",
       });
       setStatus('idle');
     }
-  };
+  }
+
 
   const handleHelperPackClick = async (prompt: string) => {
     if (status !== 'idle') return;
@@ -151,6 +191,21 @@ export default function SunoBot() {
         <div className="flex items-center gap-2">
           {status === 'thinking' && <ThinkingIcon className="animate-spin text-primary" />}
           {status === 'speaking' && <Volume2 className="animate-pulse text-primary"/>}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground" aria-label="Change Language">
+                <Languages size={18} />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-40">
+              <DropdownMenuLabel>Language</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuRadioGroup value={language} onValueChange={(value) => setLanguage(value as 'English' | 'Urdu')}>
+                <DropdownMenuRadioItem value="English">English</DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="Urdu">Urdu</DropdownMenuRadioItem>
+              </DropdownMenuRadioGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Button variant="ghost" size="icon" onClick={() => setShowFavorites(!showFavorites)} className="h-9 w-9 text-muted-foreground" aria-label="View Bookmarks">
             <Bookmark size={18} className={cn("transition-colors", showFavorites && 'fill-primary text-primary')} />
           </Button>
