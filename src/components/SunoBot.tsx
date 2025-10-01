@@ -183,7 +183,7 @@ export default function SunoBot() {
 
 
   return (
-    <div className="flex flex-col h-full bg-gradient-to-b from-white via-background to-background">
+    <div className="flex flex-col h-full bg-background">
       <header className="flex justify-between items-center p-4">
         <SunoBotLogo className="h-8 w-auto" />
         <div className="flex items-center gap-2">

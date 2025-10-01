@@ -8,7 +8,6 @@ import Reminders from '@/components/Reminders';
 import Profile from '@/app/profile/page';
 import { Button } from '@/components/ui/button';
 import { MessageSquare, Camera, BookOpen, Bell, User } from 'lucide-react';
-import AuthLayout from '@/components/AuthLayout';
 
 type ActiveView = 'chat' | 'analyze' | 'homework' | 'reminders' | 'profile';
 
@@ -105,10 +104,8 @@ function App() {
 
 export default function Home() {
   return (
-    <main className="min-h-screen bg-background">
-      <AuthLayout>
-        <App />
-      </AuthLayout>
+    <main className="min-h-screen bg-background flex items-center justify-center">
+      <App />
     </main>
   );
 }
