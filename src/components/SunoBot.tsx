@@ -28,6 +28,7 @@ export default function SunoBot() {
   const [status, setStatus] = useState<Status>('idle');
   const [bookmarkedIds, setBookmarkedIds] = useState<Set<number>>(new Set());
   const [showFavorites, setShowFavorites] = useState(false);
+  const [currentlyPlayingId, setCurrentlyPlayingId] = useState<number | null>(null);
   const audioPlayerRef = useRef<HTMLAudioElement | null>(null);
   const { toast } = useToast();
   const { user } = useUser();
@@ -82,15 +83,19 @@ export default function SunoBot() {
   const processQuery = async (query: string) => {
     try {
       setStatus('thinking');
+      const userMessage: Message = { id: Date.now(), role: 'user', text: query };
+      const assistantMessage: Message = { id: Date.now() + 1, role: 'assistant', text: '', audioUrl: '' };
+      
+      setConversation(prev => [...prev, userMessage, assistantMessage]);
+
       const { answer } = await getAIAnswer({
         question: query,
         conversationHistory: conversation.slice(-5).map(m => ({role: m.role, text: m.text})),
         language
       });
-
-      const assistantMessage: Message = { id: Date.now() + 1, role: 'assistant', text: answer, audioUrl: '' };
-      setConversation(prev => [...prev, assistantMessage]);
-
+      
+      setConversation(prev => prev.map(m => m.id === assistantMessage.id ? {...m, text: answer} : m));
+      
       await playResponse(answer, assistantMessage.id);
     } catch (error) {
       console.error('Error processing query:', error);
@@ -106,21 +111,8 @@ export default function SunoBot() {
   const playResponse = async (text: string, messageId: number) => {
     try {
       const { media } = await getSpokenResponse(text);
-
       setConversation(prev => prev.map(m => m.id === messageId ? {...m, audioUrl: media} : m));
-
-      if (audioPlayerRef.current) {
-        audioPlayerRef.current.pause();
-      }
-      
-      const audio = new Audio(media);
-      audioPlayerRef.current = audio;
-      setStatus('speaking');
-      audio.play();
-      audio.onended = () => {
-        setStatus('idle');
-        audioPlayerRef.current = null;
-      };
+      handlePlaybackToggle(messageId, media);
     } catch (error) {
        console.error('Error playing response:', error);
        toast({
@@ -129,14 +121,43 @@ export default function SunoBot() {
         variant: "destructive",
       });
       setStatus('idle');
+      setCurrentlyPlayingId(null);
     }
   }
+
+  const handlePlaybackToggle = (messageId: number, audioUrlOverride?: string) => {
+    if (audioPlayerRef.current && currentlyPlayingId === messageId) {
+      audioPlayerRef.current.pause();
+      audioPlayerRef.current = null;
+      setCurrentlyPlayingId(null);
+      setStatus('idle');
+      return;
+    }
+
+    if (audioPlayerRef.current) {
+      audioPlayerRef.current.pause();
+    }
+
+    const message = conversation.find(m => m.id === messageId);
+    const audioUrl = audioUrlOverride || message?.audioUrl;
+
+    if (audioUrl) {
+      const audio = new Audio(audioUrl);
+      audioPlayerRef.current = audio;
+      setCurrentlyPlayingId(messageId);
+      setStatus('speaking');
+      audio.play();
+      audio.onended = () => {
+        setCurrentlyPlayingId(null);
+        setStatus('idle');
+        audioPlayerRef.current = null;
+      };
+    }
+  };
 
 
   const handleHelperPackClick = async (prompt: string) => {
     if (status !== 'idle') return;
-    const userMessage: Message = { id: Date.now(), role: 'user', text: prompt };
-    setConversation(prev => [...prev, userMessage]);
     setShowFavorites(false);
     await processQuery(prompt);
   };
@@ -155,9 +176,10 @@ export default function SunoBot() {
 
   const handleMicPress = () => {
     if (showFavorites) setShowFavorites(false);
-    if (status === 'speaking' && audioPlayerRef.current) {
+    if (audioPlayerRef.current) {
       audioPlayerRef.current.pause();
-      audioPlayerRef.current.currentTime = 0;
+      audioPlayerRef.current = null;
+      setCurrentlyPlayingId(null);
     }
     setStatus('listening');
   };
@@ -208,7 +230,13 @@ export default function SunoBot() {
             <HelperPacks onPackClick={handleHelperPackClick} />
           )
         ) : (
-          <ConversationView conversation={messagesToDisplay} bookmarkedIds={bookmarkedIds} onBookmark={handleBookmarkToggle} />
+          <ConversationView 
+             conversation={messagesToDisplay} 
+             bookmarkedIds={bookmarkedIds} 
+             onBookmark={handleBookmarkToggle}
+             onPlaybackToggle={handlePlaybackToggle}
+             currentlyPlayingId={currentlyPlayingId}
+           />
         )}
       </div>
 

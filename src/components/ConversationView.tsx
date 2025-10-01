@@ -3,20 +3,22 @@
 import React, { useRef, useEffect } from 'react';
 import type { Message } from './SunoBot';
 import { cn } from '@/lib/utils';
-import { User, Bot, Play, Share2, Bookmark } from 'lucide-react';
+import { User, Bot, Play, Share2, Bookmark, StopCircle } from 'lucide-react';
 import { Button } from './ui/button';
 import { Avatar, AvatarFallback } from './ui/avatar';
 import { useToast } from "@/hooks/use-toast";
 
-const playAudio = (audioUrl?: string) => {
-  if (audioUrl) {
-    const audio = new Audio(audioUrl);
-    audio.play().catch(e => console.error("Audio play failed", e));
-  }
-};
+interface AssistantMessageProps {
+  message: Message;
+  onBookmark: (id: number) => void;
+  isBookmarked: boolean;
+  onPlaybackToggle: (messageId: number) => void;
+  currentlyPlayingId: number | null;
+}
 
-const AssistantMessage = ({ message, onBookmark, isBookmarked }: { message: Message; onBookmark: (id: number) => void; isBookmarked: boolean }) => {
+const AssistantMessage = ({ message, onBookmark, isBookmarked, onPlaybackToggle, currentlyPlayingId }: AssistantMessageProps) => {
   const { toast } = useToast();
+  const isPlaying = message.id === currentlyPlayingId;
   
   const handleShare = async () => {
     const shareData = {
@@ -61,8 +63,8 @@ const AssistantMessage = ({ message, onBookmark, isBookmarked }: { message: Mess
           <p>{message.text}</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={() => playAudio(message.audioUrl)}>
-            <Play size={16} />
+          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={() => onPlaybackToggle(message.id)} disabled={!message.audioUrl}>
+            {isPlaying ? <StopCircle size={16} className="text-primary" /> : <Play size={16} />}
           </Button>
           <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={() => onBookmark(message.id)}>
             <Bookmark size={16} className={cn("transition-colors", isBookmarked && "fill-primary text-primary")} />
@@ -93,7 +95,7 @@ const UserMessage = ({ message }: { message: Message }) => {
   );
 };
 
-export default function ConversationView({ conversation, bookmarkedIds, onBookmark }: { conversation: Message[]; bookmarkedIds: Set<number>; onBookmark: (id: number) => void; }) {
+export default function ConversationView({ conversation, bookmarkedIds, onBookmark, onPlaybackToggle, currentlyPlayingId }: { conversation: Message[]; bookmarkedIds: Set<number>; onBookmark: (id: number) => void; onPlaybackToggle: (messageId: number) => void; currentlyPlayingId: number | null; }) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -107,7 +109,13 @@ export default function ConversationView({ conversation, bookmarkedIds, onBookma
       {conversation.map((message) => (
         <div key={message.id}>
           {message.role === 'assistant' ? (
-            <AssistantMessage message={message} onBookmark={onBookmark} isBookmarked={bookmarkedIds.has(message.id)} />
+            <AssistantMessage 
+              message={message} 
+              onBookmark={onBookmark} 
+              isBookmarked={bookmarkedIds.has(message.id)}
+              onPlaybackToggle={onPlaybackToggle}
+              currentlyPlayingId={currentlyPlayingId}
+            />
           ) : (
             <UserMessage message={message} />
           )}
