@@ -74,7 +74,15 @@ export default function SettingsPage() {
     if (!settingsDocRef) return;
     const subscription = form.watch((value) => {
         if (!value) return;
-        setDocumentNonBlocking(settingsDocRef, value, { merge: true });
+        
+        // Filter out undefined values before saving
+        const cleanedValue = Object.fromEntries(
+            Object.entries(value).filter(([_, v]) => v !== undefined)
+        );
+
+        if (Object.keys(cleanedValue).length > 0) {
+            setDocumentNonBlocking(settingsDocRef, cleanedValue, { merge: true });
+        }
     });
     return () => subscription.unsubscribe();
   }, [form, settingsDocRef]);
@@ -121,7 +129,7 @@ export default function SettingsPage() {
                         <FormItem className='flex justify-between items-center'>
                             <FormLabel>Theme</FormLabel>
                             <FormControl>
-                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
                                     <SelectTrigger className="w-[120px]">
                                         <SelectValue placeholder="Select theme" />
                                     </SelectTrigger>
@@ -150,7 +158,7 @@ export default function SettingsPage() {
                              <FormItem className='flex justify-between items-center'>
                                 <FormLabel>App Language</FormLabel>
                                 <FormControl>
-                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
                                         <SelectTrigger className="w-[120px]">
                                             <SelectValue placeholder="Select language" />
                                         </SelectTrigger>
@@ -170,7 +178,7 @@ export default function SettingsPage() {
                              <FormItem className='flex justify-between items-center'>
                                 <FormLabel>Voice Preference</FormLabel>
                                 <FormControl>
-                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
                                         <SelectTrigger className="w-[120px]">
                                             <SelectValue placeholder="Select voice" />
                                         </SelectTrigger>
