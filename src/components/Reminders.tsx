@@ -14,6 +14,8 @@ import { useAudioRecorder } from '@/lib/hooks/use-audio-recorder';
 import { getParsedReminder } from '@/app/actions';
 import { format, parse } from 'date-fns';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { useUser, useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
+import { collection, doc } from 'firebase/firestore';
 
 const reminderSchema = z.object({
   medicineName: z.string().min(1, 'Medicine name is required'),
@@ -27,14 +29,17 @@ const reminderSchema = z.object({
 });
 
 type ReminderFormValues = z.infer<typeof reminderSchema>;
-
 type Reminder = ReminderFormValues & { id: string };
 
 export default function Reminders() {
-  const [reminders, setReminders] = useState<Reminder[]>([]);
   const [notificationPermission, setNotificationPermission] = useState('default');
   const [isParsing, setIsParsing] = useState(false);
   const { toast } = useToast();
+  const { user } = useUser();
+  const firestore = useFirestore();
+
+  const remindersColRef = useMemoFirebase(() => user ? collection(firestore, 'users', user.uid, 'reminders') : null, [user, firestore]);
+  const { data: reminders, isLoading: areRemindersLoading } = useCollection<Reminder>(remindersColRef);
 
   const form = useForm<ReminderFormValues>({
     resolver: zodResolver(reminderSchema),
@@ -85,9 +90,9 @@ export default function Reminders() {
   };
 
   const onSubmit = (data: ReminderFormValues) => {
-    const newReminder = { ...data, id: Date.now().toString() };
-    setReminders(prev => [...prev, newReminder]);
-    scheduleNotification(newReminder);
+    if (!remindersColRef) return;
+    addDocumentNonBlocking(remindersColRef, { ...data, createdAt: new Date().toISOString() });
+    scheduleNotification({ ...data, id: '' }); // ID is not needed for scheduling
     form.reset();
     toast({ title: 'Reminder Set!', description: `${data.medicineName} reminder has been saved.` });
   };
@@ -120,18 +125,23 @@ export default function Reminders() {
     setTimeout(() => {
         new Notification(`Time for your medicine: ${reminder.medicineName}`, {
             body: `Dosage: ${reminder.dosage || 'Not specified'}.`,
-            icon: '/logo.png' // Make sure you have a logo file
+            icon: '/logo.png'
         });
         if(reminder.repeatDaily) {
             scheduleNotification(reminder); // Reschedule for next day
         } else {
-            deleteReminder(reminder.id);
+            if (remindersColRef) {
+              const reminderDocRef = doc(remindersColRef, reminder.id);
+              deleteDocumentNonBlocking(reminderDocRef);
+            }
         }
     }, delay);
   };
 
   const deleteReminder = (id: string) => {
-    setReminders(prev => prev.filter(r => r.id !== id));
+    if (!remindersColRef) return;
+    const reminderDocRef = doc(remindersColRef, id);
+    deleteDocumentNonBlocking(reminderDocRef);
   };
 
   return (
@@ -195,8 +205,9 @@ export default function Reminders() {
         
         <div className="space-y-2">
             <h2 className="text-lg font-semibold">Active Reminders</h2>
-            {reminders.length === 0 && <p className="text-sm text-muted-foreground">No reminders set yet.</p>}
-            {reminders.map(r => (
+            {areRemindersLoading && <Loader2 className="animate-spin" />}
+            {!areRemindersLoading && reminders?.length === 0 && <p className="text-sm text-muted-foreground">No reminders set yet.</p>}
+            {reminders?.map(r => (
                 <div key={r.id} className="flex items-center justify-between p-3 bg-secondary rounded-lg">
                     <div>
                         <p className="font-semibold">{r.medicineName}</p>

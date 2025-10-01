@@ -11,16 +11,16 @@ import { useToast } from "@/hooks/use-toast";
 import { Bookmark } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc } from 'firebase/firestore';
-import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection, addDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase';
+import { doc, collection, query, orderBy, limit } from 'firebase/firestore';
 
 
 export type Message = {
-  id: number;
+  id: string;
   role: 'user' | 'assistant';
   text: string;
   audioUrl?: string;
+  createdAt?: any;
 };
 
 export type Status = 'idle' | 'listening' | 'thinking' | 'speaking';
@@ -33,11 +33,10 @@ type Settings = {
 }
 
 export default function SunoBot() {
-  const [conversation, setConversation] = useState<Message[]>([]);
   const [status, setStatus] = useState<Status>('idle');
-  const [bookmarkedIds, setBookmarkedIds] = useState<Set<number>>(new Set());
+  const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(new Set());
   const [showFavorites, setShowFavorites] = useState(false);
-  const [currentlyPlayingId, setCurrentlyPlayingId] = useState<number | null>(null);
+  const [currentlyPlayingId, setCurrentlyPlayingId] = useState<string | null>(null);
   const audioPlayerRef = useRef<HTMLAudioElement | null>(null);
   const { toast } = useToast();
   const { user } = useUser();
@@ -47,10 +46,19 @@ export default function SunoBot() {
   const { data: settings } = useDoc<Settings>(settingsRef);
   const language = settings?.language || 'English';
 
+  const chatHistoryColRef = useMemoFirebase(() => user ? collection(firestore, 'users', user.uid, 'chatHistory') : null, [user, firestore]);
+  const chatHistoryQuery = useMemoFirebase(() => chatHistoryColRef ? query(chatHistoryColRef, orderBy('createdAt', 'asc')) : null, [chatHistoryColRef]);
+  const { data: conversation, isLoading: isHistoryLoading } = useCollection<Message>(chatHistoryQuery);
+
   const handleLanguageToggle = () => {
     if (!settingsRef || !settings) return;
     const newLanguage = language === 'English' ? 'Urdu' : 'English';
     setDocumentNonBlocking(settingsRef, { ...settings, language: newLanguage }, { merge: true });
+  }
+  
+  const saveMessage = (message: Omit<Message, 'id' | 'createdAt'>) => {
+      if (!chatHistoryColRef) return;
+      addDocumentNonBlocking(chatHistoryColRef, { ...message, createdAt: new Date().toISOString() });
   }
 
   const handleRecordingComplete = async (audioDataUri: string) => {
@@ -58,7 +66,7 @@ export default function SunoBot() {
     try {
       const { answer, transcribedText } = await getAIAnswer({ 
         audioDataUri,
-        conversationHistory: conversation.slice(-5).map(m => ({role: m.role, text: m.text})),
+        conversationHistory: conversation?.slice(-5).map(m => ({role: m.role, text: m.text})) || [],
         language
        });
 
@@ -66,13 +74,15 @@ export default function SunoBot() {
         throw new Error('Transcription failed.');
       }
       
-      const userMessage: Message = { id: Date.now(), role: 'user', text: transcribedText };
-      const assistantMessage: Message = { id: Date.now() + 1, role: 'assistant', text: answer, audioUrl: '' };
-
-      setConversation(prev => [...prev, userMessage, assistantMessage]);
+      saveMessage({ role: 'user', text: transcribedText });
+      saveMessage({ role: 'assistant', text: answer, audioUrl: '' });
+      
       setShowFavorites(false);
       
-      await playResponse(answer, Date.now() + 1);
+      const assistantMessage = conversation?.find(m => m.text === answer);
+      if(assistantMessage) {
+        await playResponse(answer, assistantMessage.id);
+      }
 
     } catch (error) {
       console.error('Error during transcription and response:', error);
@@ -98,20 +108,22 @@ export default function SunoBot() {
   const processQuery = async (query: string) => {
     try {
       setStatus('thinking');
-      const userMessage: Message = { id: Date.now(), role: 'user', text: query };
-      const assistantMessage: Message = { id: Date.now() + 1, role: 'assistant', text: '', audioUrl: '' };
-      
-      setConversation(prev => [...prev, userMessage, assistantMessage]);
+      saveMessage({ role: 'user', text: query });
 
       const { answer } = await getAIAnswer({
         question: query,
-        conversationHistory: conversation.slice(-5).map(m => ({role: m.role, text: m.text})),
+        conversationHistory: conversation?.slice(-5).map(m => ({role: m.role, text: m.text})) || [],
         language
       });
       
-      setConversation(prev => prev.map(m => m.id === assistantMessage.id ? {...m, text: answer} : m));
+      const assistantMsgData = { role: 'assistant', text: answer, audioUrl: '' };
+      saveMessage(assistantMsgData);
       
-      await playResponse(answer, assistantMessage.id);
+      const assistantMessage = conversation?.find(m => m.text === answer);
+      if(assistantMessage) {
+        await playResponse(answer, assistantMessage.id);
+      }
+
     } catch (error) {
       console.error('Error processing query:', error);
        toast({
@@ -123,10 +135,12 @@ export default function SunoBot() {
     }
   };
 
-  const playResponse = async (text: string, messageId: number) => {
+  const playResponse = async (text: string, messageId: string) => {
+    if (!chatHistoryColRef) return;
     try {
       const { media } = await getSpokenResponse(text);
-      setConversation(prev => prev.map(m => m.id === messageId ? {...m, audioUrl: media} : m));
+      const messageRef = doc(chatHistoryColRef, messageId);
+      setDocumentNonBlocking(messageRef, { audioUrl: media }, { merge: true });
       handlePlaybackToggle(messageId, media);
     } catch (error) {
        console.error('Error playing response:', error);
@@ -140,7 +154,7 @@ export default function SunoBot() {
     }
   }
 
-  const handlePlaybackToggle = (messageId: number, audioUrlOverride?: string) => {
+  const handlePlaybackToggle = (messageId: string, audioUrlOverride?: string) => {
     if (audioPlayerRef.current && currentlyPlayingId === messageId) {
       audioPlayerRef.current.pause();
       audioPlayerRef.current = null;
@@ -153,7 +167,7 @@ export default function SunoBot() {
       audioPlayerRef.current.pause();
     }
 
-    const message = conversation.find(m => m.id === messageId);
+    const message = conversation?.find(m => m.id === messageId);
     const audioUrl = audioUrlOverride || message?.audioUrl;
 
     if (audioUrl) {
@@ -177,7 +191,7 @@ export default function SunoBot() {
     await processQuery(prompt);
   };
   
-  const handleBookmarkToggle = (messageId: number) => {
+  const handleBookmarkToggle = (messageId: string) => {
     setBookmarkedIds(prev => {
       const newSet = new Set(prev);
       if (newSet.has(messageId)) {
@@ -215,7 +229,7 @@ export default function SunoBot() {
   };
   
   const messagesToDisplay = showFavorites 
-    ? conversation.filter(msg => msg.role === 'assistant' && bookmarkedIds.has(msg.id))
+    ? conversation?.filter(msg => msg.role === 'assistant' && bookmarkedIds.has(msg.id))
     : conversation;
 
 
@@ -236,7 +250,7 @@ export default function SunoBot() {
       </header>
 
       <div className="flex-grow overflow-hidden px-4 pb-4">
-        { messagesToDisplay.length === 0 ? (
+        { (messagesToDisplay || []).length === 0 ? (
           showFavorites ? (
              <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground p-8">
                 <Bookmark size={48} className="mb-4" />
@@ -248,7 +262,7 @@ export default function SunoBot() {
           )
         ) : (
           <ConversationView 
-             conversation={messagesToDisplay} 
+             conversation={messagesToDisplay || []}
              bookmarkedIds={bookmarkedIds} 
              onBookmark={handleBookmarkToggle}
              onPlaybackToggle={handlePlaybackToggle}

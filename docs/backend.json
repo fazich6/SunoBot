@@ -74,6 +74,69 @@
         "voicePreference",
         "enableTopicSuggestions"
       ]
+    },
+    "Reminder": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Reminder",
+      "type": "object",
+      "description": "Represents a medicine reminder set by the user.",
+      "properties": {
+        "medicineName": {
+          "type": "string",
+          "description": "The name of the medicine."
+        },
+        "dosage": {
+          "type": "string",
+          "description": "The dosage of the medicine."
+        },
+        "time": {
+          "type": "string",
+          "description": "The time for the reminder in HH:mm format."
+        },
+        "date": {
+          "type": "string",
+          "description": "The date for the reminder in yyyy-MM-dd format.",
+          "format": "date"
+        },
+        "repeatDaily": {
+          "type": "boolean",
+          "description": "Whether the reminder should repeat daily."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp of when the reminder was created.",
+          "format": "date-time"
+        }
+      },
+      "required": ["medicineName", "time", "repeatDaily", "createdAt"]
+    },
+    "ChatMessage": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ChatMessage",
+      "type": "object",
+      "description": "Represents a single message in the user's chat history.",
+      "properties": {
+        "role": {
+          "type": "string",
+          "enum": ["user", "assistant"],
+          "description": "The role of the message sender."
+        },
+        "text": {
+          "type": "string",
+          "description": "The text content of the message."
+        },
+        "audioUrl": {
+          "type": "string",
+          "description": "The URL of the spoken audio for the message.",
+          "format": "uri"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp of when the message was created.",
+          "format": "date-time"
+        }
+      },
+      "required": ["role", "text", "createdAt"]
     }
   },
   "auth": {
@@ -102,6 +165,22 @@
             "$ref": "#/backend/entities/Settings"
           },
           "description": "Stores user-specific settings. Accessible only by the user with the matching {userId}."
+        }
+      },
+       {
+        "path": "/users/{userId}/reminders/{reminderId}",
+        "definition": {
+          "entityName": "Reminder",
+          "schema": { "$ref": "#/backend/entities/Reminder" },
+          "description": "Stores individual medicine reminders for a user. Accessible only by the owner."
+        }
+      },
+      {
+        "path": "/users/{userId}/chatHistory/{messageId}",
+        "definition": {
+          "entityName": "ChatMessage",
+          "schema": { "$ref": "#/backend/entities/ChatMessage" },
+          "description": "Stores individual chat messages for a user. Accessible only by the owner."
         }
       }
     ]

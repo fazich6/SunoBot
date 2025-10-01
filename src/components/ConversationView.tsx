@@ -10,10 +10,10 @@ import { useToast } from "@/hooks/use-toast";
 
 interface AssistantMessageProps {
   message: Message;
-  onBookmark: (id: number) => void;
+  onBookmark: (id: string) => void;
   isBookmarked: boolean;
-  onPlaybackToggle: (messageId: number) => void;
-  currentlyPlayingId: number | null;
+  onPlaybackToggle: (messageId: string) => void;
+  currentlyPlayingId: string | null;
 }
 
 const AssistantMessage = ({ message, onBookmark, isBookmarked, onPlaybackToggle, currentlyPlayingId }: AssistantMessageProps) => {
@@ -95,7 +95,7 @@ const UserMessage = ({ message }: { message: Message }) => {
   );
 };
 
-export default function ConversationView({ conversation, bookmarkedIds, onBookmark, onPlaybackToggle, currentlyPlayingId }: { conversation: Message[]; bookmarkedIds: Set<number>; onBookmark: (id: number) => void; onPlaybackToggle: (messageId: number) => void; currentlyPlayingId: number | null; }) {
+export default function ConversationView({ conversation, bookmarkedIds, onBookmark, onPlaybackToggle, currentlyPlayingId }: { conversation: Message[]; bookmarkedIds: Set<string>; onBookmark: (id: string) => void; onPlaybackToggle: (messageId: string) => void; currentlyPlayingId: string | null; }) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
