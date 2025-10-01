@@ -6,10 +6,6 @@
       "type": "object",
       "description": "Represents a user's profile within the SunoBot application.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the user profile."
-        },
         "firstName": {
           "type": "string",
           "description": "User's first name."
@@ -18,42 +14,22 @@
           "type": "string",
           "description": "User's last name."
         },
-        "preferredLanguage": {
-          "type": "string",
-          "description": "User's preferred language (e.g., 'en', 'ur')."
-        },
         "email": {
           "type": "string",
           "description": "User's email address.",
           "format": "email"
         },
-        "phoneNumber": {
-          "type": "string",
-          "description": "User's phone number."
-        },
-        "profilePictureUrl": {
-          "type": "string",
-          "description": "URL of the user's profile picture.",
-          "format": "uri"
-        },
         "createdAt": {
           "type": "string",
           "description": "Timestamp of when the user profile was created.",
           "format": "date-time"
-        },
-        "updatedAt": {
-          "type": "string",
-          "description": "Timestamp of when the user profile was last updated.",
-          "format": "date-time"
         }
       },
       "required": [
-        "id",
         "firstName",
         "lastName",
-        "preferredLanguage",
-        "createdAt",
-        "updatedAt"
+        "email",
+        "createdAt"
       ]
     },
     "Settings": {
@@ -62,50 +38,20 @@
       "type": "object",
       "description": "Represents user-specific settings for the SunoBot application.",
       "properties": {
-        "id": {
+        "language": {
           "type": "string",
-          "description": "Unique identifier for the settings entity."
-        },
-        "userProfileId": {
-          "type": "string",
-          "description": "Reference to UserProfile. (Relationship: UserProfile 1:1 Settings)"
-        },
-        "notificationsEnabled": {
-          "type": "boolean",
-          "description": "Indicates whether notifications are enabled for the user."
-        },
-        "voiceAssistantSpeed": {
-          "type": "number",
-          "description": "The preferred speech rate for the voice assistant."
+          "enum": ["English", "Urdu"],
+          "description": "User's preferred language."
         },
         "theme": {
           "type": "string",
-          "description": "User's preferred theme (e.g., 'light', 'dark')."
-        },
-        "dataSavingMode": {
-          "type": "boolean",
-          "description": "Indicates whether data saving mode is enabled."
-        },
-        "createdAt": {
-          "type": "string",
-          "description": "Timestamp of when the settings were created.",
-          "format": "date-time"
-        },
-        "updatedAt": {
-          "type": "string",
-          "description": "Timestamp of when the settings were last updated.",
-          "format": "date-time"
+          "enum": ["light", "dark", "system"],
+          "description": "User's preferred theme."
         }
       },
       "required": [
-        "id",
-        "userProfileId",
-        "notificationsEnabled",
-        "voiceAssistantSpeed",
-        "theme",
-        "dataSavingMode",
-        "createdAt",
-        "updatedAt"
+        "language",
+        "theme"
       ]
     }
   },
@@ -118,38 +64,25 @@
   "firestore": {
     "structure": [
       {
-        "path": "/users/{userId}/profile",
+        "path": "/users/{userId}",
         "definition": {
           "entityName": "UserProfile",
           "schema": {
             "$ref": "#/backend/entities/UserProfile"
           },
-          "description": "Stores user profile information.  Accessible only by the user with the matching {userId}.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique ID of the user."
-            }
-          ]
+          "description": "Stores user profile information. Accessible only by the user with the matching {userId}."
         }
       },
       {
-        "path": "/users/{userId}/settings",
+        "path": "/settings/{userId}",
         "definition": {
           "entityName": "Settings",
           "schema": {
             "$ref": "#/backend/entities/Settings"
           },
-          "description": "Stores user-specific settings.  Accessible only by the user with the matching {userId}.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique ID of the user."
-            }
-          ]
+          "description": "Stores user-specific settings. Accessible only by the user with the matching {userId}."
         }
       }
-    ],
-    "reasoning": "This Firestore data structure is designed to support the SunoBot application, prioritizing security, scalability, and debuggability, especially given the target audience (elders, kids, rural users).  The structure leverages path-based ownership for user profiles and settings, ensuring data privacy. Authorization Independence is maintained by using path-based ownership, eliminating the need for `get()` calls in security rules. This enables atomic operations. Structural Segregation separates user-specific data into dedicated collections to enforce homogeneous security requirements. The design incorporates explicit state modeling where applicable and follows semantic naming conventions for clarity.\n\nSpecifically:\n\n*   `/users/{userId}/profile`:  Each user has their profile.  Access is restricted to the authenticated user.\n*   `/users/{userId}/settings`: Each user has their settings.  Access is restricted to the authenticated user."
+    ]
   }
 }

@@ -1,92 +1,62 @@
 /**
- * @fileoverview Firestore Security Rules for the SunoBot application.
+ * @file Firestore Security Rules for SunoBot Application
  *
- * Core Philosophy:
- * This ruleset enforces a strict user-ownership model, ensuring that users can only access their own profiles and settings.
- *
- * Data Structure:
- * All user data is nested under `/users/{userId}`, with separate subcollections for `profile` and `settings`.
- *
- * Key Security Decisions:
- * - No listing of users is allowed.
- * - Strict ownership is enforced via path-based authorization.
- * - Data validation is minimal to allow for rapid prototyping and schema evolution.
- *
- * Denormalization for Authorization:
- * The `userProfileId` in `/users/{userId}/settings` must match the `{userId}` path segment to ensure consistent ownership and prevent unauthorized data access.
+ * @core_philosophy This ruleset enforces a strict user-ownership model, ensuring that each user can only access their own profile and settings data.
+ * @data_structure All data is nested under /users/{userId}, with 'profile' and 'settings' subcollections.
+ * @key_security_decisions
+ *   - User listing is disallowed.
+ *   - All write operations are protected by owner validation.
+ *   - Data validation is relaxed in this prototype phase, focusing on authorization.
+ *   - Path-based ownership avoids costly `get()` calls.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Secure access to user profiles.
+     * @description Enforces access control for user profiles. Only the authenticated user can read and write their own profile.
      * @path /users/{userId}/profile
-     * @allow (create) - User 'abc' can create their profile if request.auth.uid == 'abc' and request.resource.data.id == 'abc'.
-     * @allow (get, update, delete) - User 'abc' can access/modify their profile if request.auth.uid == 'abc'.
-     * @deny (create) - User 'def' cannot create a profile for user 'abc'.
-     * @deny (get, update, delete) - User 'def' cannot access/modify user 'abc's profile.
-     * @principle Enforces document ownership for writes.
+     * @allow (create) - Authenticated user with UID 'user123' can create their profile at /users/user123/profile.
+     * @allow (get, update, delete) - Authenticated user with UID 'user123' can read, update, and delete their profile at /users/user123/profile.
+     * @deny (create) - Authenticated user with UID 'user456' cannot create a profile at /users/user123/profile.
+     * @deny (get, update, delete) - Authenticated user with UID 'user456' cannot read, update, or delete the profile at /users/user123/profile.
+     * @principle Enforces document ownership for writes and reads.
      */
     match /users/{userId}/profile {
-      // Helper function to check if the user is signed in and owns the resource.
-      function isOwner(userId) {
-        return request.auth.uid == userId;
-      }
-
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
-      // Allow a user to create their own profile if the userId matches and profile id matches.
-      allow create: if isSignedIn() && isOwner(userId) && request.resource.data.id == userId;
-
-      // Allow a user to get their own profile.
-      allow get: if isSignedIn() && isOwner(userId);
-
-      // Allow a user to list their own profile - there is only one profile per user.
-      allow list: if isOwner(userId);
-
-      // Allow a user to update their own profile if they own it and the id is immutable.
-      allow update: if isSignedIn() && isOwner(userId) && resource.data.id == request.resource.data.id;
-
-      // Allow a user to delete their own profile if they own it.
-      allow delete: if isSignedIn() && isOwner(userId) && resource != null;
+      allow get: if isOwner(userId);
+      allow list: if false;
+      allow create: if isOwner(userId) && request.resource.data.id == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
+      allow delete: if isExistingOwner(userId);
     }
 
     /**
-     * @description Secure access to user settings.
+     * @description Enforces access control for user settings. Only the authenticated user can read and write their own settings.
      * @path /users/{userId}/settings
-     * @allow (create) - User 'abc' can create their settings if request.auth.uid == 'abc' and request.resource.data.userProfileId == 'abc'.
-     * @allow (get, update, delete) - User 'abc' can access/modify their settings if request.auth.uid == 'abc'.
-     * @deny (create) - User 'def' cannot create settings for user 'abc'.
-     * @deny (get, update, delete) - User 'def' cannot access/modify user 'abc's settings.
-     * @principle Enforces document ownership for writes.
+     * @allow (create) - Authenticated user with UID 'user123' can create their settings at /users/user123/settings.
+     * @allow (get, update, delete) - Authenticated user with UID 'user123' can read, update, and delete their settings at /users/user123/settings.
+     * @deny (create) - Authenticated user with UID 'user456' cannot create settings at /users/user123/settings.
+     * @deny (get, update, delete) - Authenticated user with UID 'user456' cannot read, update, or delete the settings at /users/user123/settings.
+     * @principle Enforces document ownership for writes and reads.
      */
     match /users/{userId}/settings {
-       // Helper function to check if the user is signed in and owns the resource.
-      function isOwner(userId) {
-        return request.auth.uid == userId;
-      }
+      allow get: if isOwner(userId);
+      allow list: if false;
+      allow create: if isOwner(userId) && request.resource.data.userProfileId == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.userProfileId == resource.data.userProfileId;
+      allow delete: if isExistingOwner(userId);
+    }
 
-      function isSignedIn() {
-        return request.auth != null;
-      }
+    function isSignedIn() {
+      return request.auth != null;
+    }
 
-      // Allow a user to create their own settings if the userId matches and settings userProfileId matches.
-      allow create: if isSignedIn() && isOwner(userId) && request.resource.data.userProfileId == userId;
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
 
-      // Allow a user to get their own settings.
-      allow get: if isSignedIn() && isOwner(userId);
-
-      // Allow a user to list their own settings - there is only one settings per user.
-      allow list: if isOwner(userId);
-
-      // Allow a user to update their own settings if they own it and the userProfileId is immutable.
-      allow update: if isSignedIn() && isOwner(userId) && resource.data.userProfileId == request.resource.data.userProfileId && resource != null;
-
-      // Allow a user to delete their own settings if they own it.
-      allow delete: if isSignedIn() && isOwner(userId) && resource != null;
+    function isExistingOwner(userId) {
+        return isOwner(userId) && resource != null;
     }
   }
 }

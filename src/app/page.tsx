@@ -5,10 +5,12 @@ import SunoBot from '@/components/SunoBot';
 import Analyze from '@/components/Analyze';
 import Homework from '@/components/Homework';
 import Reminders from '@/components/Reminders';
+import Profile from '@/app/profile/page';
 import { Button } from '@/components/ui/button';
-import { MessageSquare, Camera, BookOpen, Bell } from 'lucide-react';
+import { MessageSquare, Camera, BookOpen, Bell, User } from 'lucide-react';
+import AuthLayout from '@/components/AuthLayout';
 
-type ActiveView = 'chat' | 'analyze' | 'homework' | 'reminders';
+type ActiveView = 'chat' | 'analyze' | 'homework' | 'reminders' | 'profile';
 
 const NavItem = ({
   view,
@@ -37,7 +39,7 @@ const NavItem = ({
   </Button>
 );
 
-export default function Home() {
+function App() {
   const [activeView, setActiveView] = useState<ActiveView>('chat');
 
   const renderView = () => {
@@ -50,46 +52,63 @@ export default function Home() {
         return <Homework />;
       case 'reminders':
         return <Reminders />;
+      case 'profile':
+        return <Profile />;
       default:
         return <SunoBot />;
     }
   };
 
   return (
+    <div className="w-full max-w-md mx-auto h-screen bg-background flex flex-col overflow-hidden relative font-body">
+      <div className="flex-grow overflow-hidden">{renderView()}</div>
+      <nav className="flex justify-around border-t">
+        <NavItem
+          view="chat"
+          activeView={activeView}
+          setView={setActiveView}
+          icon={MessageSquare}
+          label="Chat"
+        />
+        <NavItem
+          view="analyze"
+          activeView={activeView}
+          setView={setActiveView}
+          icon={Camera}
+          label="Analyze"
+        />
+        <NavItem
+          view="homework"
+          activeView={activeView}
+          setView={setActiveView}
+          icon={BookOpen}
+          label="Homework"
+        />
+        <NavItem
+          view="reminders"
+          activeView={activeView}
+          setView={setActiveView}
+          icon={Bell}
+          label="Reminders"
+        />
+        <NavItem
+          view="profile"
+          activeView={activeView}
+          setView={setActiveView}
+          icon={User}
+          label="Profile"
+        />
+      </nav>
+    </div>
+  );
+}
+
+export default function Home() {
+  return (
     <main className="min-h-screen bg-background">
-      <div className="w-full max-w-md mx-auto h-screen bg-background flex flex-col overflow-hidden relative font-body">
-        <div className="flex-grow overflow-hidden">{renderView()}</div>
-        <nav className="flex justify-around border-t">
-          <NavItem
-            view="chat"
-            activeView={activeView}
-            setView={setActiveView}
-            icon={MessageSquare}
-            label="Chat"
-          />
-          <NavItem
-            view="analyze"
-            activeView={activeView}
-            setView={setActiveView}
-            icon={Camera}
-            label="Analyze"
-          />
-          <NavItem
-            view="homework"
-            activeView={activeView}
-            setView={setActiveView}
-            icon={BookOpen}
-            label="Homework"
-          />
-          <NavItem
-            view="reminders"
-            activeView={activeView}
-            setView={setActiveView}
-            icon={Bell}
-            label="Reminders"
-          />
-        </nav>
-      </div>
+      <AuthLayout>
+        <App />
+      </AuthLayout>
     </main>
   );
 }

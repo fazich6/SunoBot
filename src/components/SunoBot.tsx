@@ -8,18 +8,11 @@ import HelperPacks from '@/components/HelperPacks';
 import ConversationView from '@/components/ConversationView';
 import MicrophoneButton from '@/components/MicrophoneButton';
 import { useToast } from "@/hooks/use-toast";
-import { Bookmark,Languages } from 'lucide-react';
+import { Bookmark } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { doc } from 'firebase/firestore';
 
 export type Message = {
   id: number;
@@ -35,9 +28,14 @@ export default function SunoBot() {
   const [status, setStatus] = useState<Status>('idle');
   const [bookmarkedIds, setBookmarkedIds] = useState<Set<number>>(new Set());
   const [showFavorites, setShowFavorites] = useState(false);
-  const [language, setLanguage] = useState<'English' | 'Urdu'>('English');
   const audioPlayerRef = useRef<HTMLAudioElement | null>(null);
   const { toast } = useToast();
+  const { user } = useUser();
+  const firestore = useFirestore();
+
+  const settingsRef = useMemoFirebase(() => user ? doc(firestore, 'settings', user.uid) : null, [user, firestore]);
+  const { data: settings } = useDoc<{ language: 'English' | 'Urdu' }>(settingsRef);
+  const language = settings?.language || 'English';
 
   const handleRecordingComplete = async (audioDataUri: string) => {
     setStatus('thinking');
@@ -191,21 +189,7 @@ export default function SunoBot() {
         <div className="flex items-center gap-2">
           {status === 'thinking' && <ThinkingIcon className="animate-spin text-primary" />}
           {status === 'speaking' && <Volume2 className="animate-pulse text-primary"/>}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground" aria-label="Change Language">
-                <Languages size={18} />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-40">
-              <DropdownMenuLabel>Language</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuRadioGroup value={language} onValueChange={(value) => setLanguage(value as 'English' | 'Urdu')}>
-                <DropdownMenuRadioItem value="English">English</DropdownMenuRadioItem>
-                <DropdownMenuRadioItem value="Urdu">Urdu</DropdownMenuRadioItem>
-              </DropdownMenuRadioGroup>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <div className="text-sm font-medium">{language}</div>
           <Button variant="ghost" size="icon" onClick={() => setShowFavorites(!showFavorites)} className="h-9 w-9 text-muted-foreground" aria-label="View Bookmarks">
             <Bookmark size={18} className={cn("transition-colors", showFavorites && 'fill-primary text-primary')} />
           </Button>
