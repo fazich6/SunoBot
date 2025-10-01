@@ -13,6 +13,8 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
+import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+
 
 export type Message = {
   id: number;
@@ -22,6 +24,13 @@ export type Message = {
 };
 
 export type Status = 'idle' | 'listening' | 'thinking' | 'speaking';
+
+type Settings = {
+  language: 'English' | 'Urdu';
+  theme?: 'light' | 'dark' | 'system';
+  voicePreference?: 'Male' | 'Female';
+  enableTopicSuggestions?: boolean;
+}
 
 export default function SunoBot() {
   const [conversation, setConversation] = useState<Message[]>([]);
@@ -35,8 +44,14 @@ export default function SunoBot() {
   const firestore = useFirestore();
 
   const settingsRef = useMemoFirebase(() => user ? doc(firestore, 'settings', user.uid) : null, [user, firestore]);
-  const { data: settings } = useDoc<{ language: 'English' | 'Urdu' }>(settingsRef);
+  const { data: settings } = useDoc<Settings>(settingsRef);
   const language = settings?.language || 'English';
+
+  const handleLanguageToggle = () => {
+    if (!settingsRef || !settings) return;
+    const newLanguage = language === 'English' ? 'Urdu' : 'English';
+    setDocumentNonBlocking(settingsRef, { ...settings, language: newLanguage }, { merge: true });
+  }
 
   const handleRecordingComplete = async (audioDataUri: string) => {
     setStatus('thinking');
@@ -211,7 +226,9 @@ export default function SunoBot() {
         <div className="flex items-center gap-2">
           {status === 'thinking' && <ThinkingIcon className="animate-spin text-primary" />}
           {status === 'speaking' && <Volume2 className="animate-pulse text-primary"/>}
-          <div className="text-sm font-medium">{language}</div>
+          <Button variant="ghost" onClick={handleLanguageToggle} className="text-sm font-medium">
+            {language}
+          </Button>
           <Button variant="ghost" size="icon" onClick={() => setShowFavorites(!showFavorites)} className="h-9 w-9 text-muted-foreground" aria-label="View Bookmarks">
             <Bookmark size={18} className={cn("transition-colors", showFavorites && 'fill-primary text-primary')} />
           </Button>
