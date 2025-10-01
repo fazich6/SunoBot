@@ -38,7 +38,7 @@ const NavItem = ({
   </Button>
 );
 
-function App() {
+export default function App() {
   const [activeView, setActiveView] = useState<ActiveView>('chat');
 
   const renderView = () => {
@@ -99,13 +99,5 @@ function App() {
         />
       </nav>
     </div>
-  );
-}
-
-export default function Home() {
-  return (
-    <main className="min-h-screen bg-background flex items-center justify-center">
-      <App />
-    </main>
   );
 }

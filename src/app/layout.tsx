@@ -3,6 +3,7 @@ import { Toaster } from "@/components/ui/toaster"
 import { FirebaseClientProvider } from '@/firebase';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import './globals.css';
+import AuthLayout from '@/components/AuthLayout';
 
 export const metadata: Metadata = {
   title: 'SunoBot',
@@ -25,7 +26,9 @@ export default function RootLayout({
       <body className="font-body antialiased">
         <FirebaseClientProvider>
           <ThemeProvider>
-            {children}
+            <AuthLayout>
+              {children}
+            </AuthLayout>
             <Toaster />
           </ThemeProvider>
         </FirebaseClientProvider>
