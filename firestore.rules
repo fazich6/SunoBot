@@ -1,84 +1,54 @@
 /**
- * @file SunoBot Firestore Security Rules
- * @version 2
- *
- * @description
- * This ruleset enforces a strict user-ownership model, ensuring that users can only access and modify their own data.
+ * @file Firestore Security Rules
+ * @description This ruleset enforces a strict user-ownership model, where each user can only access their own data.
  *
  * Data Structure:
- * All user-related data is nested under the `/users/{userId}` path. This includes profile information, settings, reminders, and chat history.
+ * - /users/{userId}: User profile information.
+ * - /settings/{userId}: User-specific settings.
+ * - /users/{userId}/reminders/{reminderId}: Medicine reminders for a user.
+ * - /users/{userId}/chatHistory/{messageId}: Chat messages for a user.
  *
  * Key Security Decisions:
- * - Users can only create, read, update, and delete data under their own user ID.
- * - Listing of user documents is disallowed for security reasons (to prevent enumeration).
- * - Data types and schema validation are relaxed for rapid prototyping, focusing on authorization.
- *
- * Denormalization for Authorization:
- * The rules rely on the `request.auth.uid` to match the `{userId}` in the path, ensuring that the authenticated user is the owner of the data.
+ * - Users can only read and write their own user profile and settings.
+ * - Users can only read and write their own reminders.
+ * - Users can only read and write their own chat history.
+ * - Listing of user documents is disallowed.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Checks if the request is authenticated.
-     * @returns {boolean} True if the request is authenticated; otherwise, false.
-     */
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
-    /**
-     * @description Checks if the request is made by the owner of the document.
-     * @param {string} userId - The user ID to compare against the request's authentication UID.
-     * @returns {boolean} True if the user ID matches the request's authentication UID; otherwise, false.
-     */
-    function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
-    }
-
-    /**
-     * @description Checks if the request is made by the owner of an existing document.
-     * @param {string} userId - The user ID to compare against the request's authentication UID.
-     * @returns {boolean} True if the user ID matches the request's authentication UID and the document exists; otherwise, false.
-     */
-    function isExistingOwner(userId) {
-      return isOwner(userId) && resource != null;
-    }
-
-    /**
-     * @description Applies to the /users/{userId} document.
+     * @description Secure user profiles, allowing only the owner to read and write.
      * @path /users/{userId}
-     * @allow (create) User 'test_user' with UID 'user123' can create their profile: request.auth.uid == 'user123'. The document id must also equal 'user123'.
-     * @deny (create) User 'test_user' with UID 'user123' cannot create a profile for another user: request.auth.uid != 'anotherUser'.
-     * @allow (get) User 'test_user' with UID 'user123' can read their profile.
-     * @deny (get) User 'test_user' with UID 'user456' cannot read the profile of 'user123'.
-     * @allow (update) User 'test_user' with UID 'user123' can update their profile.
-     * @deny (update) User 'test_user' with UID 'user456' cannot update the profile of 'user123'.
-     * @allow (delete) User 'test_user' with UID 'user123' can delete their profile.
-     * @deny (delete) User 'test_user' with UID 'user456' cannot delete the profile of 'user123'.
-     * @principle Enforces document ownership for all operations.
+     * @allow (create) User RXSN9aywJyQAlPJJmFiRZcgIk9J3 can create their own profile document.
+     * @allow (get) User RXSN9aywJyQAlPJJmFiRZcgIk9J3 can read their own profile document.
+     * @allow (update) User RXSN9aywJyQAlPJJmFiRZcgIk9J3 can update their own profile document.
+     * @deny (create) User WXSGyaywJyQAlPJJmFiRZcgIk9J3 cannot create profile document for RXSN9aywJyQAlPJJmFiRZcgIk9J3.
+     * @deny (get) User WXSGyaywJyQAlPJJmFiRZcgIk9J3 cannot read profile document for RXSN9aywJyQAlPJJmFiRZcgIk9J3.
+     * @deny (update) User WXSGyaywJyQAlPJJmFiRZcgIk9J3 cannot update profile document for RXSN9aywJyQAlPJJmFiRZcgIk9J3.
+     * @deny (list) No listing of user documents is allowed.
+     * @principle Enforces document ownership for writes.
      */
     match /users/{userId} {
       allow get: if isOwner(userId);
       allow list: if false;
-      allow create: if isOwner(userId) && request.resource.data.email is string;
+      allow create: if isOwner(userId);
       allow update: if isExistingOwner(userId);
       allow delete: if isExistingOwner(userId);
     }
 
     /**
-     * @description Applies to the /settings/{userId} document.
+     * @description Secure user settings, allowing only the owner to read and write.
      * @path /settings/{userId}
-     * @allow (create) User 'test_user' with UID 'user123' can create their settings: request.auth.uid == 'user123'. The document id must also equal 'user123'.
-     * @deny (create) User 'test_user' with UID 'user123' cannot create settings for another user: request.auth.uid != 'anotherUser'.
-     * @allow (get) User 'test_user' with UID 'user123' can read their settings.
-     * @deny (get) User 'test_user' with UID 'user456' cannot read the settings of 'user123'.
-     * @allow (update) User 'test_user' with UID 'user123' can update their settings.
-     * @deny (update) User 'test_user' with UID 'user456' cannot update the settings of 'user123'.
-     * @allow (delete) User 'test_user' with UID 'user123' can delete their settings.
-     * @deny (delete) User 'test_user' with UID 'user456' cannot delete the settings of 'user123'.
-     * @principle Enforces document ownership for all operations.
+     * @allow (create) User RXSN9aywJyQAlPJJmFiRZcgIk9J3 can create their own settings document.
+     * @allow (get) User RXSN9aywJyQAlPJJmFiRZcgIk9J3 can read their own settings document.
+     * @allow (update) User RXSN9aywJyQAlPJJmFiRZcgIk9J3 can update their own settings document.
+     * @deny (create) User WXSGyaywJyQAlPJJmFiRZcgIk9J3 cannot create settings document for RXSN9aywJyQAlPJJmFiRZcgIk9J3.
+     * @deny (get) User WXSGyaywJyQAlPJJmFiRZcgIk9J3 cannot read settings document for RXSN9aywJyQAlPJJmFiRZcgIk9J3.
+     * @deny (update) User WXSGyaywJyQAlPJJmFiRZcgIk9J3 cannot update settings document for RXSN9aywJyQAlPJJmFiRZcgIk9J3.
+     * @deny (list) No listing of user settings documents is allowed.
+     * @principle Enforces document ownership for writes.
      */
     match /settings/{userId} {
       allow get: if isOwner(userId);
@@ -89,17 +59,16 @@ service cloud.firestore {
     }
 
     /**
-     * @description Applies to the /users/{userId}/reminders/{reminderId} collection.
+     * @description Secure medicine reminders, allowing only the owner to read and write.
      * @path /users/{userId}/reminders/{reminderId}
-     * @allow (create) User 'test_user' with UID 'user123' can create a reminder: request.auth.uid == 'user123'.
-     * @deny (create) User 'test_user' with UID 'user123' cannot create a reminder for another user: request.auth.uid != 'anotherUser'.
-     * @allow (get) User 'test_user' with UID 'user123' can read their reminder.
-     * @deny (get) User 'test_user' with UID 'user456' cannot read the reminder of 'user123'.
-     * @allow (update) User 'test_user' with UID 'user123' can update their reminder.
-     * @deny (update) User 'test_user' with UID 'user456' cannot update the reminder of 'user123'.
-     * @allow (delete) User 'test_user' with UID 'user123' can delete their reminder.
-     * @deny (delete) User 'test_user' with UID 'user456' cannot delete the reminder of 'user123'.
-     * @principle Enforces document ownership for all operations.
+     * @allow (create) User RXSN9aywJyQAlPJJmFiRZcgIk9J3 can create their own reminder document.
+     * @allow (get) User RXSN9aywJyQAlPJJmFiRZcgIk9J3 can read their own reminder document.
+     * @allow (update) User RXSN9aywJyQAlPJJmFiRZcgIk9J3 can update their own reminder document.
+     * @allow (list) User RXSN9aywJyQAlPJJmFiRZcgIk9J3 can list their own reminder documents.
+     * @deny (create) User WXSGyaywJyQAlPJJmFiRZcgIk9J3 cannot create reminder document for RXSN9aywJyQAlPJJmFiRZcgIk9J3.
+     * @deny (get) User WXSGyaywJyQAlPJJmFiRZcgIk9J3 cannot read reminder document for RXSN9aywJyQAlPJJmFiRZcgIk9J3.
+     * @deny (update) User WXSGyaywJyQAlPJJmFiRZcgIk9J3 cannot update reminder document for RXSN9aywJyQAlPJJmFiRZcgIk9J3.
+     * @principle Enforces document ownership for writes.
      */
     match /users/{userId}/reminders/{reminderId} {
       allow get: if isOwner(userId);
@@ -109,18 +78,17 @@ service cloud.firestore {
       allow delete: if isExistingOwner(userId);
     }
 
-   /**
-     * @description Applies to the /users/{userId}/chatHistory/{messageId} collection.
+    /**
+     * @description Secure chat history messages, allowing only the owner to read and write.
      * @path /users/{userId}/chatHistory/{messageId}
-     * @allow (create) User 'test_user' with UID 'user123' can create a chat message: request.auth.uid == 'user123'.
-     * @deny (create) User 'test_user' with UID 'user123' cannot create a chat message for another user: request.auth.uid != 'anotherUser'.
-     * @allow (get) User 'test_user' with UID 'user123' can read their chat message.
-     * @deny (get) User 'test_user' with UID 'user456' cannot read the chat message of 'user123'.
-     * @allow (update) User 'test_user' with UID 'user123' can update their chat message.
-     * @deny (update) User 'test_user' with UID 'user456' cannot update the chat message of 'user123'.
-     * @allow (delete) User 'test_user' with UID 'user123' can delete their chat message.
-     * @deny (delete) User 'test_user' with UID 'user456' cannot delete the chat message of 'user123'.
-     * @principle Enforces document ownership for all operations.
+     * @allow (create) User RXSN9aywJyQAlPJJmFiRZcgIk9J3 can create their own chat message document.
+     * @allow (get) User RXSN9aywJyQAlPJJmFiRZcgIk9J3 can read their own chat message document.
+     * @allow (update) User RXSN9aywJyQAlPJJmFiRZcgIk9J3 can update their own chat message document.
+     * @allow (list) User RXSN9aywJyQAlPJJmFiRZcgIk9J3 can list their own chat message documents.
+     * @deny (create) User WXSGyaywJyQAlPJJmFiRZcgIk9J3 cannot create chat message document for RXSN9aywJyQAlPJJmFiRZcgIk9J3.
+     * @deny (get) User WXSGyaywJyQAlPJJmFiRZcgIk9J3 cannot read chat message document for RXSN9aywJyQAlPJJmFiRZcgIk9J3.
+     * @deny (update) User WXSGyaywJyQAlPJJmFiRZcgIk9J3 cannot update chat message document for RXSN9aywJyQAlPJJmFiRZcgIk9J3.
+     * @principle Enforces document ownership for writes.
      */
     match /users/{userId}/chatHistory/{messageId} {
       allow get: if isOwner(userId);
@@ -129,5 +97,18 @@ service cloud.firestore {
       allow update: if isExistingOwner(userId);
       allow delete: if isExistingOwner(userId);
     }
+  }
+
+  // Helper functions
+  function isSignedIn() {
+    return request.auth != null;
+  }
+
+  function isOwner(userId) {
+    return isSignedIn() && request.auth.uid == userId;
+  }
+
+  function isExistingOwner(userId) {
+    return isOwner(userId) && resource != null;
   }
 }
