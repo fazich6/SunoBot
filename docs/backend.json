@@ -40,18 +40,39 @@
       "properties": {
         "language": {
           "type": "string",
-          "enum": ["English", "Urdu"],
+          "enum": [
+            "English",
+            "Urdu"
+          ],
           "description": "User's preferred language."
         },
         "theme": {
           "type": "string",
-          "enum": ["light", "dark", "system"],
+          "enum": [
+            "light",
+            "dark",
+            "system"
+          ],
           "description": "User's preferred theme."
+        },
+        "voicePreference": {
+          "type": "string",
+          "enum": [
+            "Male",
+            "Female"
+          ],
+          "description": "User's preferred voice for text-to-speech."
+        },
+        "enableTopicSuggestions": {
+          "type": "boolean",
+          "description": "Whether to show topic suggestions on the chat screen."
         }
       },
       "required": [
         "language",
-        "theme"
+        "theme",
+        "voicePreference",
+        "enableTopicSuggestions"
       ]
     }
   },
