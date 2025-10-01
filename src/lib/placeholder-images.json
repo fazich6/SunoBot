@@ -1,3 +1,28 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "recipes",
+      "description": "Delicious recipes for your family",
+      "imageUrl": "https://images.unsplash.com/photo-1656711829545-91481f306b88?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxmb29kJTIwY29va2luZ3xlbnwwfHx8fDE3NTkyODk2ODV8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "food cooking"
+    },
+    {
+      "id": "health-tips",
+      "description": "Stay healthy and happy",
+      "imageUrl": "https://images.unsplash.com/photo-1554244933-d876deb6b2ff?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxoZWFsdGglMjB3ZWxsbmVzc3xlbnwwfHx8fDE3NTkyMzAxNDR8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "health wellness"
+    },
+    {
+      "id": "kids-stories",
+      "description": "Fun stories for children",
+      "imageUrl": "https://images.unsplash.com/flagged/photo-1551887373-6edba6dacbb1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxib29rJTIwa2lkc3xlbnwwfHx8fDE3NTkzMzc0MTV8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "book kids"
+    },
+    {
+      "id": "daily-life",
+      "description": "Tips for everyday tasks",
+      "imageUrl": "https://images.unsplash.com/photo-1544375586-7b09db0789bd?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxzdW5yaXNlJTIwaG9tZXxlbnwwfHx8fDE3NTkzMzc0MTV8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "sunrise home"
+    }
+  ]
 }
