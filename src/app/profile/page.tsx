@@ -82,12 +82,10 @@ export default function ProfilePage() {
       <header className="p-4 border-b flex justify-between items-center">
         <h1 className="text-xl font-bold text-center">Profile</h1>
         <div>
-            <Link href="/settings" passHref legacyBehavior>
-                <a >
-                    <Button variant="ghost" size="icon">
-                        <Settings />
-                    </Button>
-                </a>
+            <Link href="/settings">
+                <Button variant="ghost" size="icon">
+                    <Settings />
+                </Button>
             </Link>
             <Button variant="ghost" size="icon" onClick={handleLogout}>
                 <LogOut />
