@@ -26,7 +26,9 @@ export type AnswerUserQuestionsOutput = z.infer<typeof AnswerUserQuestionsOutput
 
 
 // speak-responses-in-urdu-english-mix.ts
-export const SpeakResponsesInUrduEnglishMixInputSchema = z.string().describe('The text to be spoken in a mix of Urdu and English.');
+export const SpeakResponsesInUrduEnglishMixInputSchema = z.object({
+    text: z.string().describe('The text to be spoken in a mix of Urdu and English.'),
+});
 export type SpeakResponsesInUrduEnglishMixInput = z.infer<typeof SpeakResponsesInUrduEnglishMixInputSchema>;
 
 export const SpeakResponsesInUrduEnglishMixOutputSchema = z.object({

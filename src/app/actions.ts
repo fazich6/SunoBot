@@ -29,9 +29,9 @@ export async function getAIAnswer(
 }
 
 export async function getSpokenResponse(
-  text: SpeakResponsesInUrduEnglishMixInput
+  input: SpeakResponsesInUrduEnglishMixInput
 ): Promise<SpeakResponsesInUrduEnglishMixOutput> {
-  return await speakResponsesInUrduEnglishMix(text);
+  return await speakResponsesInUrduEnglishMix(input);
 }
 
 export async function getImageAnalysis(

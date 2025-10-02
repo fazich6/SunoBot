@@ -56,9 +56,10 @@ export default function SunoBot() {
     setDocumentNonBlocking(settingsRef, { ...settings, language: newLanguage }, { merge: true });
   }
   
-  const saveMessage = (message: Omit<Message, 'id' | 'createdAt'>) => {
-      if (!chatHistoryColRef) return;
-      addDocumentNonBlocking(chatHistoryColRef, { ...message, createdAt: new Date().toISOString() });
+  const saveMessage = async (message: Omit<Message, 'id' | 'createdAt'>) => {
+      if (!chatHistoryColRef) return null;
+      const docRef = await addDocumentNonBlocking(chatHistoryColRef, { ...message, createdAt: new Date().toISOString() });
+      return docRef?.id || null;
   }
 
   const handleRecordingComplete = async (audioDataUri: string) => {
@@ -75,13 +76,12 @@ export default function SunoBot() {
       }
       
       saveMessage({ role: 'user', text: transcribedText });
-      saveMessage({ role: 'assistant', text: answer, audioUrl: '' });
+      const assistantMessageId = await saveMessage({ role: 'assistant', text: answer, audioUrl: '' });
       
       setShowFavorites(false);
       
-      const assistantMessage = conversation?.find(m => m.text === answer);
-      if(assistantMessage) {
-        await playResponse(answer, assistantMessage.id);
+      if(assistantMessageId) {
+        await playResponse(answer, assistantMessageId);
       }
 
     } catch (error) {
@@ -116,12 +116,10 @@ export default function SunoBot() {
         language
       });
       
-      const assistantMsgData = { role: 'assistant', text: answer, audioUrl: '' };
-      saveMessage(assistantMsgData);
+      const assistantMsgId = await saveMessage({ role: 'assistant', text: answer, audioUrl: '' });
       
-      const assistantMessage = conversation?.find(m => m.text === answer);
-      if(assistantMessage) {
-        await playResponse(answer, assistantMessage.id);
+      if(assistantMsgId) {
+        await playResponse(answer, assistantMsgId);
       }
 
     } catch (error) {
@@ -138,9 +136,11 @@ export default function SunoBot() {
   const playResponse = async (text: string, messageId: string) => {
     if (!chatHistoryColRef) return;
     try {
-      const { media } = await getSpokenResponse(text);
+      const { media } = await getSpokenResponse({ text });
       const messageRef = doc(chatHistoryColRef, messageId);
       setDocumentNonBlocking(messageRef, { audioUrl: media }, { merge: true });
+      // The useCollection hook will update the conversation, and the button will become enabled.
+      // We then call handlePlaybackToggle to start playing.
       handlePlaybackToggle(messageId, media);
     } catch (error) {
        console.error('Error playing response:', error);
