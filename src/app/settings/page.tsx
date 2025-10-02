@@ -1,13 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel } from '@/components/ui/form';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc } from 'firebase/firestore';
+import { doc, collection, getDocs, writeBatch } from 'firebase/firestore';
 import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, ArrowLeft, Moon, Mic, Bell, Trash2 } from 'lucide-react';
@@ -87,13 +87,40 @@ export default function SettingsPage() {
     return () => subscription.unsubscribe();
   }, [form, settingsDocRef]);
   
-  const handleClearHistory = () => {
-    // In a real app, you would have a function to clear history.
-    // For this prototype, we'll just show a toast.
-    toast({
+  const handleClearHistory = async () => {
+    if (!user || !firestore) return;
+
+    const chatHistoryColRef = collection(firestore, 'users', user.uid, 'chatHistory');
+
+    try {
+      const querySnapshot = await getDocs(chatHistoryColRef);
+      if (querySnapshot.empty) {
+        toast({
+          title: "No History Found",
+          description: "Your chat history is already empty.",
+        });
+        return;
+      }
+
+      const batch = writeBatch(firestore);
+      querySnapshot.forEach(doc => {
+        batch.delete(doc.ref);
+      });
+
+      await batch.commit();
+
+      toast({
         title: "Chat History Cleared",
         description: "Your conversation history has been permanently deleted.",
-    });
+      });
+    } catch (error) {
+      console.error("Error clearing chat history:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Could not clear chat history. Please try again.",
+      });
+    }
   };
 
   const isLoading = isUserLoading || isSettingsLoading;
