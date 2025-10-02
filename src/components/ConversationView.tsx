@@ -14,9 +14,10 @@ interface AssistantMessageProps {
   isBookmarked: boolean;
   onPlaybackToggle: (messageId: string) => void;
   currentlyPlayingId: string | null;
+  language: 'English' | 'Urdu';
 }
 
-const AssistantMessage = ({ message, onBookmark, isBookmarked, onPlaybackToggle, currentlyPlayingId }: AssistantMessageProps) => {
+const AssistantMessage = ({ message, onBookmark, isBookmarked, onPlaybackToggle, currentlyPlayingId, language }: AssistantMessageProps) => {
   const { toast } = useToast();
   const isPlaying = message.id === currentlyPlayingId;
   
@@ -51,6 +52,8 @@ const AssistantMessage = ({ message, onBookmark, isBookmarked, onPlaybackToggle,
     }
   };
 
+  const isUrdu = language === 'Urdu';
+
   return (
     <div className="flex items-start gap-3">
       <Avatar className="w-8 h-8 border border-primary/20">
@@ -59,7 +62,11 @@ const AssistantMessage = ({ message, onBookmark, isBookmarked, onPlaybackToggle,
         </AvatarFallback>
       </Avatar>
       <div className="flex-1 space-y-2">
-        <div dir="rtl" className="bg-primary/10 text-foreground rounded-lg p-3 rounded-tl-none font-urdu text-right text-lg leading-relaxed">
+        <div className={cn(
+          "bg-primary/10 text-foreground rounded-lg p-3 rounded-tl-none",
+          isUrdu ? "font-urdu text-right text-lg leading-relaxed" : "text-left"
+        )}
+        dir={isUrdu ? 'rtl' : 'ltr'}>
           <p>{message.text}</p>
         </div>
         <div className="flex items-center gap-2">
@@ -95,7 +102,7 @@ const UserMessage = ({ message }: { message: Message }) => {
   );
 };
 
-export default function ConversationView({ conversation, bookmarkedIds, onBookmark, onPlaybackToggle, currentlyPlayingId }: { conversation: Message[]; bookmarkedIds: Set<string>; onBookmark: (id: string) => void; onPlaybackToggle: (messageId: string) => void; currentlyPlayingId: string | null; }) {
+export default function ConversationView({ conversation, bookmarkedIds, onBookmark, onPlaybackToggle, currentlyPlayingId, language }: { conversation: Message[]; bookmarkedIds: Set<string>; onBookmark: (id: string) => void; onPlaybackToggle: (messageId: string) => void; currentlyPlayingId: string | null; language: 'English' | 'Urdu'; }) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -115,6 +122,7 @@ export default function ConversationView({ conversation, bookmarkedIds, onBookma
               isBookmarked={bookmarkedIds.has(message.id)}
               onPlaybackToggle={onPlaybackToggle}
               currentlyPlayingId={currentlyPlayingId}
+              language={language}
             />
           ) : (
             <UserMessage message={message} />

@@ -267,6 +267,7 @@ export default function SunoBot() {
              onBookmark={handleBookmarkToggle}
              onPlaybackToggle={handlePlaybackToggle}
              currentlyPlayingId={currentlyPlayingId}
+             language={language}
            />
         )}
       </div>
