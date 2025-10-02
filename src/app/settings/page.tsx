@@ -156,7 +156,7 @@ export default function SettingsPage() {
                         <FormItem className='flex justify-between items-center'>
                             <FormLabel>Theme</FormLabel>
                             <FormControl>
-                                <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
+                                <Select onValueChange={field.onChange} value={field.value}>
                                     <SelectTrigger className="w-[120px]">
                                         <SelectValue placeholder="Select theme" />
                                     </SelectTrigger>
@@ -185,7 +185,7 @@ export default function SettingsPage() {
                              <FormItem className='flex justify-between items-center'>
                                 <FormLabel>App Language</FormLabel>
                                 <FormControl>
-                                    <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
+                                    <Select onValueChange={field.onChange} value={field.value}>
                                         <SelectTrigger className="w-[120px]">
                                             <SelectValue placeholder="Select language" />
                                         </SelectTrigger>
@@ -205,7 +205,7 @@ export default function SettingsPage() {
                              <FormItem className='flex justify-between items-center'>
                                 <FormLabel>Voice Preference</FormLabel>
                                 <FormControl>
-                                    <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
+                                    <Select onValueChange={field.onChange} value={field.value}>
                                         <SelectTrigger className="w-[120px]">
                                             <SelectValue placeholder="Select voice" />
                                         </SelectTrigger>
