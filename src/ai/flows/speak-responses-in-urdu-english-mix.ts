@@ -35,7 +35,7 @@ const speakResponsesInUrduEnglishMixFlow = ai.defineFlow(
           },
         },
       },
-      prompt: query,
+      prompt: query.text,
     });
     if (!media) {
       throw new Error('no media returned');
