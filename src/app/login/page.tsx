@@ -75,6 +75,7 @@ export default function LoginPage() {
       }
       
       toast({ title: 'Success', description: 'Account created successfully.' });
+      setIsLoginView(true); // Switch to login view on success
     } catch (error: any) {
       toast({ variant: 'destructive', title: 'Registration Failed', description: error.message });
     } finally {
