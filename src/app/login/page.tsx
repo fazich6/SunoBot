@@ -51,7 +51,13 @@ export default function LoginPage() {
       await signInWithEmailAndPassword(auth, values.email, values.password);
       toast({ title: 'Success', description: 'Logged in successfully.' });
     } catch (error: any) {
-      toast({ variant: 'destructive', title: 'Login Failed', description: error.message });
+      let description = 'An unknown error occurred.';
+      if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+        description = 'Invalid email or password. Please try again.';
+      } else {
+        description = error.message;
+      }
+      toast({ variant: 'destructive', title: 'Login Failed', description });
     } finally {
       setIsLoading(false);
     }
@@ -74,10 +80,16 @@ export default function LoginPage() {
         setDocumentNonBlocking(userDocRef, userProfileData, { merge: false });
       }
       
-      toast({ title: 'Success', description: 'Account created successfully.' });
-      setIsLoginView(true); // Switch to login view on success
+      toast({ title: 'Success', description: 'Account created successfully. You can now log in.' });
+      setIsLoginView(true);
     } catch (error: any) {
-      toast({ variant: 'destructive', title: 'Registration Failed', description: error.message });
+        let description = 'An unknown error occurred.';
+        if (error.code === 'auth/email-already-in-use') {
+            description = 'This email is already registered. Please log in.';
+        } else {
+            description = error.message;
+        }
+      toast({ variant: 'destructive', title: 'Registration Failed', description });
     } finally {
       setIsLoading(false);
     }
@@ -94,6 +106,12 @@ export default function LoginPage() {
       setIsLoading(false);
     }
   };
+
+  const toggleView = () => {
+    setIsLoginView(!isLoginView);
+    loginForm.reset();
+    registerForm.reset();
+  }
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-background p-4">
@@ -192,7 +210,7 @@ export default function LoginPage() {
           )}
            <div className="mt-4 text-center text-sm">
             {isLoginView ? "Don't have an account? " : 'Already have an account? '}
-            <Button variant="link" onClick={() => setIsLoginView(!isLoginView)} className="p-0 h-auto">
+            <Button variant="link" onClick={toggleView} className="p-0 h-auto">
               {isLoginView ? 'Sign up' : 'Log in'}
             </Button>
           </div>
