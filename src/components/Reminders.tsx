@@ -11,7 +11,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Trash2, Bell, Loader2, Mic } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAudioRecorder } from '@/lib/hooks/use-audio-recorder';
-import { getParsedReminder } from '@/app/actions';
+import { getParsedReminder, getTranscription } from '@/app/actions';
 import { format, parse } from 'date-fns';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { useUser, useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
@@ -55,7 +55,12 @@ export default function Reminders() {
   const handleVoiceCommand = async (audioDataUri: string) => {
     setIsParsing(true);
     try {
-        const result = await getParsedReminder({ query: audioDataUri, isAudio: true });
+        const { transcription } = await getTranscription({ audioDataUri });
+        if (!transcription) {
+          throw new Error('Could not transcribe audio.');
+        }
+        
+        const result = await getParsedReminder({ query: transcription });
         form.setValue('medicineName', result.medicine);
         form.setValue('dosage', result.dosage || '');
         form.setValue('time', result.time);
@@ -227,3 +232,5 @@ export default function Reminders() {
     </div>
   );
 }
+
+    
