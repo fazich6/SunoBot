@@ -8,7 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { useAuth } from '@/firebase';
+import { useAuth, useFirestore, setDocumentNonBlocking } from '@/firebase';
+import { doc } from 'firebase/firestore';
 import { SunoBotLogo } from '@/components/icons';
 import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -31,6 +32,7 @@ export default function LoginPage() {
   const [isLoginView, setIsLoginView] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const auth = useAuth();
+  const firestore = useFirestore();
   const { toast } = useToast();
 
   const loginForm = useForm<z.infer<typeof loginSchema>>({
@@ -58,8 +60,20 @@ export default function LoginPage() {
   const handleRegister = async (values: z.infer<typeof registerSchema>) => {
     setIsLoading(true);
     try {
-      await createUserWithEmailAndPassword(auth, values.email, values.password);
-      // Here you would typically also create a user profile document in Firestore
+      const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
+      const user = userCredential.user;
+      
+      if (user && firestore) {
+        const userDocRef = doc(firestore, 'users', user.uid);
+        const userProfileData = {
+            firstName: values.firstName,
+            lastName: values.lastName,
+            email: values.email,
+            createdAt: new Date().toISOString(),
+        };
+        setDocumentNonBlocking(userDocRef, userProfileData, { merge: false });
+      }
+      
       toast({ title: 'Success', description: 'Account created successfully.' });
     } catch (error: any) {
       toast({ variant: 'destructive', title: 'Registration Failed', description: error.message });
