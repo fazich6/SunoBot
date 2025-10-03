@@ -8,6 +8,7 @@ import Reminders from '@/components/Reminders';
 import Profile from '@/app/profile/page';
 import { Button } from '@/components/ui/button';
 import { MessageSquare, Camera, BookOpen, Bell, User } from 'lucide-react';
+import { useUser } from '@/firebase';
 
 type ActiveView = 'chat' | 'analyze' | 'homework' | 'reminders' | 'profile';
 
@@ -40,6 +41,7 @@ const NavItem = ({
 
 export default function App() {
   const [activeView, setActiveView] = useState<ActiveView>('chat');
+  const { user } = useUser();
 
   const renderView = () => {
     switch (activeView) {
@@ -90,13 +92,15 @@ export default function App() {
           icon={Bell}
           label="Reminders"
         />
-        <NavItem
-          view="profile"
-          activeView={activeView}
-          setView={setActiveView}
-          icon={User}
-          label="Profile"
-        />
+        {!user?.isAnonymous && (
+            <NavItem
+            view="profile"
+            activeView={activeView}
+            setView={setActiveView}
+            icon={User}
+            label="Profile"
+            />
+        )}
       </nav>
     </div>
   );
