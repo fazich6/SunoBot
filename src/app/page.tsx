@@ -8,7 +8,7 @@ import Reminders from '@/components/Reminders';
 import Profile from '@/app/profile/page';
 import Reports from '@/app/reports/page';
 import { Button } from '@/components/ui/button';
-import { MessageSquare, Camera, BookOpen, Bell, User, ClipboardText } from 'lucide-react';
+import { MessageSquare, Camera, BookOpen, Bell, User, ClipboardList } from 'lucide-react';
 import { useUser } from '@/firebase';
 
 type ActiveView = 'chat' | 'analyze' | 'homework' | 'reminders' | 'profile' | 'reports';
@@ -85,7 +85,7 @@ export default function App() {
           view="reports"
           activeView={activeView}
           setView={setActiveView}
-          icon={ClipboardText}
+          icon={ClipboardList}
           label="Reports"
         />
         <NavItem
