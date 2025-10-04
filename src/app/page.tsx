@@ -95,15 +95,13 @@ export default function App() {
           icon={Bell}
           label="Reminders"
         />
-        {!user?.isAnonymous && (
-            <NavItem
+        <NavItem
             view="profile"
             activeView={activeView}
             setView={setActiveView}
             icon={User}
             label="Profile"
-            />
-        )}
+        />
       </nav>
     </div>
   );
