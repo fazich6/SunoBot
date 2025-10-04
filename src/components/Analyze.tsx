@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { Camera, RefreshCcw, Loader2, Play, Volume2, Square } from 'lucide-react';
+import { RefreshCcw, Loader2, Play, Square } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { getImageAnalysis, getSpokenResponse } from '@/app/actions';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
@@ -50,31 +50,6 @@ export default function Analyze() {
     };
   }, [facingMode, toast]);
 
-  const handleAnalysis = useCallback(async () => {
-    if (!videoRef.current || isLoading) return;
-
-    const canvas = document.createElement('canvas');
-    canvas.width = videoRef.current.videoWidth;
-    canvas.height = videoRef.current.videoHeight;
-    const context = canvas.getContext('2d');
-    if (!context) return;
-    context.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
-    const dataUri = canvas.toDataURL('image/jpeg');
-    
-    setIsLoading(true);
-    setAnalysis(null);
-    try {
-      const result = await getImageAnalysis({ imageDataUri: dataUri, language: 'Urdu' });
-      setAnalysis(result);
-      await playAnalysisAudio(result.description);
-    } catch (error) {
-      console.error('Analysis failed:', error);
-      toast({ variant: 'destructive', title: 'Analysis Failed', description: 'Could not analyze the image.' });
-    } finally {
-      setIsLoading(false);
-    }
-  }, [isLoading, toast]);
-
   const playAnalysisAudio = async (textToSpeak: string) => {
     if (!textToSpeak || isSpeaking) return;
     
@@ -94,6 +69,30 @@ export default function Analyze() {
       setIsSpeaking(false);
     }
   };
+
+  const handleAnalysis = useCallback(async () => {
+    if (!videoRef.current || isLoading) return;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = videoRef.current.videoWidth;
+    canvas.height = videoRef.current.videoHeight;
+    const context = canvas.getContext('2d');
+    if (!context) return;
+    context.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
+    const dataUri = canvas.toDataURL('image/jpeg');
+    
+    setIsLoading(true);
+    try {
+      const result = await getImageAnalysis({ imageDataUri: dataUri, language: 'Urdu' });
+      setAnalysis(result);
+      await playAnalysisAudio(result.description);
+    } catch (error) {
+      console.error('Analysis failed:', error);
+      toast({ variant: 'destructive', title: 'Analysis Failed', description: 'Could not analyze the image.' });
+    } finally {
+      setIsLoading(false);
+    }
+  }, [isLoading, toast, isSpeaking]);
   
   const switchCamera = () => {
     setFacingMode(prev => (prev === 'user' ? 'environment' : 'user'));
