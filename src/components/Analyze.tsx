@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { RefreshCcw, Loader2, Play, Square } from 'lucide-react';
+import { RefreshCcw, Loader2, Play, Square, Volume2, StopCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { getImageAnalysis, getSpokenResponse } from '@/app/actions';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
@@ -47,15 +47,24 @@ export default function Analyze() {
       if (analysisIntervalRef.current) {
         clearInterval(analysisIntervalRef.current);
       }
+      if (audioPlayerRef.current) {
+        audioPlayerRef.current.pause();
+      }
     };
   }, [facingMode, toast]);
 
-  const playAnalysisAudio = async (textToSpeak: string) => {
-    if (!textToSpeak || isSpeaking) return;
+  const handlePlayback = async () => {
+    if (isSpeaking) {
+      audioPlayerRef.current?.pause();
+      setIsSpeaking(false);
+      return;
+    }
+    
+    if (!analysis?.description) return;
     
     setIsSpeaking(true);
     try {
-      const { media } = await getSpokenResponse({ text: textToSpeak });
+      const { media } = await getSpokenResponse({ text: analysis.description });
       const audio = new Audio(media);
       audioPlayerRef.current = audio;
       audio.play();
@@ -85,14 +94,14 @@ export default function Analyze() {
     try {
       const result = await getImageAnalysis({ imageDataUri: dataUri, language: 'Urdu' });
       setAnalysis(result);
-      await playAnalysisAudio(result.description);
+      // We no longer automatically play audio here
     } catch (error) {
       console.error('Analysis failed:', error);
       toast({ variant: 'destructive', title: 'Analysis Failed', description: 'Could not analyze the image.' });
     } finally {
       setIsLoading(false);
     }
-  }, [isLoading, toast, isSpeaking]);
+  }, [isLoading, toast]);
   
   const switchCamera = () => {
     setFacingMode(prev => (prev === 'user' ? 'environment' : 'user'));
@@ -138,7 +147,12 @@ export default function Analyze() {
           {analysis && (
             <div className="space-y-4 text-right" dir="rtl">
               <div>
-                <h3 className="font-semibold font-urdu">تفصیل</h3>
+                <div className="flex justify-between items-center">
+                    <Button onClick={handlePlayback} variant="ghost" size="icon" disabled={!analysis.description}>
+                        {isSpeaking ? <StopCircle className="text-primary"/> : <Volume2 />}
+                    </Button>
+                    <h3 className="font-semibold font-urdu">تفصیل</h3>
+                </div>
                 <p className="text-sm text-muted-foreground font-urdu text-lg">{analysis.description}</p>
               </div>
               {analysis.extractedText && (
