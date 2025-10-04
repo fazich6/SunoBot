@@ -1,10 +1,9 @@
 'use client';
 
 import React from 'react';
-import { Mic, Loader2 } from 'lucide-react';
+import { Mic, Loader2, Square } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Status } from './SunoBot';
-import { SoundWave } from './icons';
 
 interface MicrophoneButtonProps extends React.HTMLAttributes<HTMLButtonElement> {
   status: Status;
@@ -31,7 +30,7 @@ const MicrophoneButton = React.forwardRef<HTMLButtonElement, MicrophoneButtonPro
           {isListening ? 'Stop recording' : 'Start recording'}
         </span>
         {isListening ? (
-          <SoundWave className="w-8 h-8 text-white" />
+          <Square className="w-8 h-8 text-white" />
         ) : isThinking ? (
           <Loader2 className="w-8 h-8 animate-spin" />
         ) : (

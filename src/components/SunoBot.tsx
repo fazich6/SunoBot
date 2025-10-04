@@ -218,28 +218,29 @@ export default function SunoBot() {
     }
   };
 
-  const handleMicPress = () => {
+  const handleMicClick = () => {
     if (showFavorites) setShowFavorites(false);
-    if (audioPlayerRef.current) {
+    if (status === 'speaking' && audioPlayerRef.current) {
       audioPlayerRef.current.pause();
       audioPlayerRef.current = null;
       setCurrentlyPlayingId(null);
+      setStatus('idle');
+      return;
     }
-    setStatus('listening');
-  };
-
-  const handleMicRelease = () => {
+    
     if (status === 'listening') {
       setStatus('thinking'); // This will trigger stopRecording via useEffect
+    } else {
+      setStatus('listening'); // This will trigger startRecording via useEffect
     }
   };
 
   const getStatusMessage = () => {
     switch (status) {
-      case 'listening': return "Listening...";
+      case 'listening': return "Listening... Tap to stop";
       case 'thinking': return "Thinking...";
       case 'speaking': return "Speaking...";
-      default: return "Tap and hold to speak";
+      default: return "Tap to speak";
     }
   };
   
@@ -290,10 +291,7 @@ export default function SunoBot() {
       <footer className="p-4 flex flex-col items-center justify-center space-y-2 border-t border-border/50 bg-background/50 backdrop-blur-sm">
         <MicrophoneButton
           status={status}
-          onMouseDown={handleMicPress}
-          onMouseUp={handleMicRelease}
-          onTouchStart={handleMicPress}
-          onTouchEnd={handleMicRelease}
+          onClick={handleMicClick}
         />
         <p className="text-sm text-muted-foreground h-4">{getStatusMessage()}</p>
       </footer>
