@@ -6,11 +6,12 @@ import Analyze from '@/components/Analyze';
 import Homework from '@/components/Homework';
 import Reminders from '@/components/Reminders';
 import Profile from '@/app/profile/page';
+import Reports from '@/app/reports/page';
 import { Button } from '@/components/ui/button';
-import { MessageSquare, Camera, BookOpen, Bell, User } from 'lucide-react';
+import { MessageSquare, Camera, BookOpen, Bell, User, ClipboardText } from 'lucide-react';
 import { useUser } from '@/firebase';
 
-type ActiveView = 'chat' | 'analyze' | 'homework' | 'reminders' | 'profile';
+type ActiveView = 'chat' | 'analyze' | 'homework' | 'reminders' | 'profile' | 'reports';
 
 const NavItem = ({
   view,
@@ -53,6 +54,8 @@ export default function App() {
         return <Homework />;
       case 'reminders':
         return <Reminders />;
+      case 'reports':
+        return <Reports />;
       case 'profile':
         return <Profile />;
       default:
@@ -79,11 +82,11 @@ export default function App() {
           label="Analyze"
         />
         <NavItem
-          view="homework"
+          view="reports"
           activeView={activeView}
           setView={setActiveView}
-          icon={BookOpen}
-          label="Homework"
+          icon={ClipboardText}
+          label="Reports"
         />
         <NavItem
           view="reminders"

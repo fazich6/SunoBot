@@ -6,6 +6,8 @@ import { analyzeImage } from '@/ai/flows/analyze-image-flow';
 import { homeworkHelper } from '@/ai/flows/homework-helper-flow';
 import { parseReminder } from '@/ai/flows/parse-reminder-flow';
 import { transcribeUserVoiceInput } from '@/ai/flows/transcribe-user-voice-input';
+import { answerImageQuestion } from '@/ai/flows/answer-image-question-flow';
+import { analyzeReport } from '@/ai/flows/analyze-report-flow';
 
 import type {
   AnswerUserQuestionsInput,
@@ -20,6 +22,10 @@ import type {
   ParseReminderOutput,
   TranscribeUserVoiceInputInput,
   TranscribeUserVoiceInputOutput,
+  AnswerImageQuestionInput,
+  AnswerImageQuestionOutput,
+  AnalyzeReportInput,
+  AnalyzeReportOutput,
 } from '@/ai/schemas';
 
 export async function getAIAnswer(
@@ -56,4 +62,16 @@ export async function getTranscription(
   input: TranscribeUserVoiceInputInput
 ): Promise<TranscribeUserVoiceInputOutput> {
     return await transcribeUserVoiceInput(input);
+}
+
+export async function getImageQuestionAnswer(
+  input: AnswerImageQuestionInput
+): Promise<AnswerImageQuestionOutput> {
+  return await answerImageQuestion(input);
+}
+
+export async function getReportAnalysis(
+  input: AnalyzeReportInput
+): Promise<AnalyzeReportOutput> {
+  return await analyzeReport(input);
 }

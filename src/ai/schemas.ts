@@ -108,3 +108,41 @@ export const SuggestTopicsOutputSchema = z.object({
     suggestedHelperPacks: z.array(z.string()).describe('An array of suggested helper pack strings in Urdu.'),
 });
 export type SuggestTopicsOutput = z.infer<typeof SuggestTopicsOutputSchema>;
+
+
+// answer-image-question-flow.ts
+export const AnswerImageQuestionInputSchema = z.object({
+  imageDataUri: z.string().describe('The image data as a data URI.'),
+  question: z.string().optional().describe("The user's text question."),
+  audioDataUri: z.string().optional().describe("The user's spoken question as a data URI."),
+  language: z.enum(['English', 'Urdu']).describe('The language for the response.'),
+});
+export type AnswerImageQuestionInput = z.infer<typeof AnswerImageQuestionInputSchema>;
+
+export const AnswerImageQuestionOutputSchema = z.object({
+  answer: z.string().describe('The AI-generated answer.'),
+  transcribedText: z.string().optional().describe('The transcribed text of the spoken question.'),
+});
+export type AnswerImageQuestionOutput = z.infer<typeof AnswerImageQuestionOutputSchema>;
+
+// analyze-report-flow.ts
+export const AnalyzeReportInputSchema = z.object({
+  reportImage: z.string().describe('The medical report image as a data URI.'),
+  language: z.enum(['English', 'Urdu']).describe('The language for the summary.'),
+});
+export type AnalyzeReportInput = z.infer<typeof AnalyzeReportInputSchema>;
+
+const ReminderSchema = z.object({
+    medicineName: z.string().describe('The name of the medicine.'),
+    dosage: z.string().optional().describe('The dosage of the medicine.'),
+    time: z.string().describe('A single time for the reminder in HH:mm 24-hour format (e.g., 09:00, 21:30).'),
+    repeatDaily: z.boolean().describe('Whether the reminder should repeat daily at this time.'),
+});
+
+export const AnalyzeReportOutputSchema = z.object({
+  reportType: z.enum(['prescription', 'lab_report', 'other']).describe('The type of medical document detected.'),
+  summary: z.string().describe('A simple summary of the report in the requested language. Includes a medical disclaimer.'),
+  extractedReminders: z.array(ReminderSchema).optional().describe('An array of reminder objects extracted from a prescription.'),
+});
+export type AnalyzeReportOutput = z.infer<typeof AnalyzeReportOutputSchema>;
+export type ExtractedReminder = z.infer<typeof ReminderSchema>;
