@@ -73,7 +73,7 @@ export default function ProfilePage() {
     );
   }
 
-  if (user?.isAnonymous) {
+  if (user && user.isAnonymous) {
       return (
         <div className="flex flex-col h-full bg-background p-4 items-center justify-center text-center">
              <div className="p-4 border border-yellow-500 bg-yellow-50 rounded-lg text-center">
