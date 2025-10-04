@@ -23,6 +23,13 @@
           "type": "string",
           "description": "Timestamp of when the user profile was created.",
           "format": "date-time"
+        },
+        "bookmarkedMessageIds": {
+          "type": "array",
+          "description": "An array of chat message IDs that the user has bookmarked.",
+          "items": {
+            "type": "string"
+          }
         }
       },
       "required": [

@@ -12,7 +12,7 @@ import { Bookmark } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection, addDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase';
-import { doc, collection, query, orderBy, limit } from 'firebase/firestore';
+import { doc, collection, query, orderBy } from 'firebase/firestore';
 
 
 export type Message = {
@@ -22,6 +22,10 @@ export type Message = {
   audioUrl?: string;
   createdAt?: any;
 };
+
+type UserProfile = {
+    bookmarkedMessageIds?: string[];
+}
 
 export type Status = 'idle' | 'listening' | 'thinking' | 'speaking';
 
@@ -45,6 +49,15 @@ export default function SunoBot() {
   const settingsRef = useMemoFirebase(() => user ? doc(firestore, 'settings', user.uid) : null, [user, firestore]);
   const { data: settings } = useDoc<Settings>(settingsRef);
   const language = settings?.language || 'English';
+
+  const userProfileRef = useMemoFirebase(() => user ? doc(firestore, 'users', user.uid) : null, [user, firestore]);
+  const { data: userProfile } = useDoc<UserProfile>(userProfileRef);
+
+  useEffect(() => {
+    if (userProfile?.bookmarkedMessageIds) {
+        setBookmarkedIds(new Set(userProfile.bookmarkedMessageIds));
+    }
+  }, [userProfile]);
 
   const chatHistoryColRef = useMemoFirebase(() => user ? collection(firestore, 'users', user.uid, 'chatHistory') : null, [user, firestore]);
   const chatHistoryQuery = useMemoFirebase(() => chatHistoryColRef ? query(chatHistoryColRef, orderBy('createdAt', 'asc')) : null, [chatHistoryColRef]);
@@ -192,15 +205,17 @@ export default function SunoBot() {
   };
   
   const handleBookmarkToggle = (messageId: string) => {
-    setBookmarkedIds(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(messageId)) {
+    const newSet = new Set(bookmarkedIds);
+    if (newSet.has(messageId)) {
         newSet.delete(messageId);
-      } else {
+    } else {
         newSet.add(messageId);
-      }
-      return newSet;
-    });
+    }
+    setBookmarkedIds(newSet);
+
+    if (userProfileRef) {
+        setDocumentNonBlocking(userProfileRef, { bookmarkedMessageIds: Array.from(newSet) }, { merge: true });
+    }
   };
 
   const handleMicPress = () => {
