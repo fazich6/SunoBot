@@ -148,6 +148,14 @@ export default function Reminders() {
     const reminderDocRef = doc(remindersColRef, id);
     deleteDocumentNonBlocking(reminderDocRef);
   };
+  
+  const formatTime = (time: string) => {
+    try {
+      return format(parse(time, 'HH:mm', new Date()), 'h:mm a');
+    } catch (e) {
+      return time;
+    }
+  }
 
   return (
     <div className="flex flex-col h-full bg-background">
@@ -218,7 +226,7 @@ export default function Reminders() {
                         <p className="font-semibold">{r.medicineName}</p>
                         <p className="text-sm text-muted-foreground">
                             {r.dosage ? `${r.dosage} at ` : ''}
-                            {format(parse(r.time, 'HH:mm', new Date()), 'h:mm a')}
+                            {formatTime(r.time)}
                             {r.repeatDaily ? ' (Daily)' : ` on ${r.date && format(new Date(r.date+'T00:00:00'), 'MMM d, yyyy')}`}
                         </p>
                     </div>
@@ -232,5 +240,3 @@ export default function Reminders() {
     </div>
   );
 }
-
-    

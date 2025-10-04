@@ -11,6 +11,7 @@ import type { AnalyzeReportOutput, ExtractedReminder } from '@/ai/schemas';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { collection } from 'firebase/firestore';
+import { format, parse } from 'date-fns';
 
 export default function ReportsPage() {
   const [imageDataUri, setImageDataUri] = useState<string | null>(null);
@@ -101,6 +102,14 @@ export default function ReportsPage() {
       };
     }
   };
+  
+  const formatTime = (time: string) => {
+    try {
+      return format(parse(time, 'HH:mm', new Date()), 'h:mm a');
+    } catch (e) {
+      return time;
+    }
+  }
 
   return (
     <div className="flex flex-col h-full bg-background">
@@ -166,7 +175,7 @@ export default function ReportsPage() {
                         <div className="space-y-2">
                             {analysisResult.extractedReminders.map((rem, index) => (
                                 <div key={index} className="p-2 bg-secondary rounded-md text-sm">
-                                    <p><span className="font-medium">{rem.medicineName}</span> ({rem.dosage || 'N/A'}) at {rem.time}{rem.repeatDaily ? ' daily' : ''}</p>
+                                    <p><span className="font-medium">{rem.medicineName}</span> ({rem.dosage || 'N/A'}) at {formatTime(rem.time)}{rem.repeatDaily ? ' daily' : ''}</p>
                                 </div>
                             ))}
                         </div>
