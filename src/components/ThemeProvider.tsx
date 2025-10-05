@@ -13,7 +13,7 @@ type Settings = {
 const themeSetterScript = `
 (function() {
   try {
-    const theme = localStorage.getItem('sunobot-theme') || 'system';
+    const theme = localStorage.getItem('sunobot-theme') || 'light';
     const root = document.documentElement;
     const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
     

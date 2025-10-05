@@ -57,7 +57,7 @@ export default function SettingsPage() {
   const form = useForm<SettingsFormValues>({
     resolver: zodResolver(settingsSchema),
     defaultValues: { 
-        theme: 'system', 
+        theme: 'light', 
         language: 'English', 
         voicePreference: 'Male',
         enableTopicSuggestions: true
