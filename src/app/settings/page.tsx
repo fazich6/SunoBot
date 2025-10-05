@@ -208,7 +208,7 @@ export default function SettingsPage() {
                                     <Select onValueChange={field.onChange} value={field.value}>
                                         <SelectTrigger className="w-[120px]">
                                             <SelectValue placeholder="Select voice" />
-                                        </SelectTrigger>
+                                        </Trigger>
                                         <SelectContent>
                                             <SelectItem value="Male">Male</SelectItem>
                                             <SelectItem value="Female">Female</SelectItem>

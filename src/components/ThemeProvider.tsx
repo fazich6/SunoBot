@@ -9,23 +9,23 @@ type Settings = {
 };
 
 // This is a client-side only script that runs before the page is hydrated.
-// We are not using dangerouslySetInnerHTML, but a simple script tag.
+// It safely sets the theme to prevent a flash of incorrect colors (FOUC).
 const themeSetterScript = `
 (function() {
   try {
-    // Default to 'light' if no theme is stored in localStorage
+    // Default to 'light' if no theme is stored in localStorage.
     const theme = localStorage.getItem('sunobot-theme') || 'light';
     const root = document.documentElement;
     
-    // Always remove existing theme classes
+    // Always remove existing theme classes to avoid conflicts.
     root.classList.remove('light', 'dark');
     
     if (theme === 'system') {
-      // If theme is 'system', apply the browser's preference
+      // If theme is 'system', apply the browser's preference.
       const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
       root.classList.add(systemTheme);
     } else {
-      // Otherwise, apply the stored or default theme ('light')
+      // Otherwise, apply the stored or default theme.
       root.classList.add(theme);
     }
   } catch (e) {
@@ -46,8 +46,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const { data: settings } = useDoc<Settings>(settingsDocRef);
 
   useEffect(() => {
+    // When settings load from Firestore, update localStorage and the active theme class.
     if (settings?.theme) {
-      // When settings load from Firestore, update localStorage
       localStorage.setItem('sunobot-theme', settings.theme);
       
       const theme = settings.theme;
