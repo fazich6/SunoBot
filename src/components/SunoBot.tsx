@@ -12,7 +12,7 @@ import { Bookmark } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection, addDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase';
-import { doc, collection, query, orderBy } from 'firebase/firestore';
+import { doc, collection, query, orderBy, updateDoc } from 'firebase/firestore';
 
 
 export type Message = {
@@ -78,30 +78,16 @@ export default function SunoBot() {
   const handleRecordingComplete = async (audioDataUri: string) => {
     setStatus('thinking');
     try {
-      // Step 1: Transcribe the audio first.
       const { transcription } = await getTranscription({ audioDataUri, language });
 
       if (!transcription) {
         throw new Error('Transcription failed or returned empty.');
       }
       
-      // Save user's transcribed message
       saveMessage({ role: 'user', text: transcription });
       setShowFavorites(false);
-
-      // Step 2: Get the answer using the transcribed text.
-      const currentConversation = conversation || [];
-      const { answer } = await getAIAnswer({ 
-        question: transcription,
-        conversationHistory: currentConversation.slice(-5).map(m => ({role: m.role, text: m.text})),
-        language
-       });
-
-      const assistantMessageId = await saveMessage({ role: 'assistant', text: answer, audioUrl: '' });
       
-      if(assistantMessageId) {
-        await generateAndSaveAudio(answer, assistantMessageId);
-      }
+      await processQuery(transcription, true);
 
     } catch (error) {
       console.error('Error during transcription and response:', error);
@@ -124,10 +110,12 @@ export default function SunoBot() {
     }
   }, [status, isRecording, startRecording, stopRecording]);
 
-  const processQuery = async (query: string) => {
+  const processQuery = async (query: string, fromVoice: boolean = false) => {
     try {
       setStatus('thinking');
-      saveMessage({ role: 'user', text: query });
+      if (!fromVoice) {
+        saveMessage({ role: 'user', text: query });
+      }
       
       const currentConversation = conversation || [];
       const { answer } = await getAIAnswer({
@@ -158,7 +146,8 @@ export default function SunoBot() {
     try {
       const { media } = await getSpokenResponse({ text });
       const messageRef = doc(chatHistoryColRef, messageId);
-      setDocumentNonBlocking(messageRef, { audioUrl: media }, { merge: true });
+      // Use Firestore's updateDoc to merge the audioUrl field non-destructively
+      await updateDoc(messageRef, { audioUrl: media });
       setStatus('idle');
     } catch (error) {
        console.error('Error generating audio:', error);
