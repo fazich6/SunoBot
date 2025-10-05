@@ -1,9 +1,9 @@
 import { cn } from "@/lib/utils";
+import Image from 'next/image';
 
 export const SunoBotLogo = (props: React.HTMLAttributes<HTMLDivElement>) => (
     <div className={cn("flex items-center gap-2", props.className)}>
-        <MicIconWhite />
-        <span className="font-headline text-xl font-bold text-foreground">SunoBot</span>
+        <Image src="https://i.freeimage.host/2024/07/31/KXUNkKJ.png" alt="SunoBot Logo" width={140} height={32} />
     </div>
 );
 
