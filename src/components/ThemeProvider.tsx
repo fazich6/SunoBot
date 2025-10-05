@@ -13,15 +13,19 @@ type Settings = {
 const themeSetterScript = `
 (function() {
   try {
+    // Default to 'light' if no theme is stored in localStorage
     const theme = localStorage.getItem('sunobot-theme') || 'light';
     const root = document.documentElement;
-    const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
     
+    // Always remove existing theme classes
     root.classList.remove('light', 'dark');
     
     if (theme === 'system') {
+      // If theme is 'system', apply the browser's preference
+      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
       root.classList.add(systemTheme);
     } else {
+      // Otherwise, apply the stored or default theme ('light')
       root.classList.add(theme);
     }
   } catch (e) {
