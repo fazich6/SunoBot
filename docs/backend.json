@@ -140,11 +140,6 @@
           "type": "string",
           "description": "The text content of the message."
         },
-        "audioUrl": {
-          "type": "string",
-          "description": "The URL of the spoken audio for the message.",
-          "format": "uri"
-        },
         "createdAt": {
           "type": "string",
           "description": "Timestamp of when the message was created.",

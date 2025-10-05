@@ -12,14 +12,13 @@ import { Bookmark } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection, addDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase';
-import { doc, collection, query, orderBy, updateDoc } from 'firebase/firestore';
+import { doc, collection, query, orderBy } from 'firebase/firestore';
 
 
 export type Message = {
   id: string;
   role: 'user' | 'assistant';
   text: string;
-  audioUrl?: string;
   createdAt?: any;
 };
 
@@ -84,9 +83,6 @@ export default function SunoBot() {
         throw new Error('Transcription failed or returned empty.');
       }
       
-      saveMessage({ role: 'user', text: transcription });
-      setShowFavorites(false);
-      
       await processQuery(transcription, true);
 
     } catch (error) {
@@ -113,9 +109,8 @@ export default function SunoBot() {
   const processQuery = async (query: string, fromVoice: boolean = false) => {
     try {
       setStatus('thinking');
-      if (!fromVoice) {
-        saveMessage({ role: 'user', text: query });
-      }
+      saveMessage({ role: 'user', text: query });
+      setShowFavorites(false);
       
       const currentConversation = conversation || [];
       const { answer } = await getAIAnswer({
@@ -124,11 +119,8 @@ export default function SunoBot() {
         language
       });
       
-      const assistantMsgId = await saveMessage({ role: 'assistant', text: answer, audioUrl: '' });
-      
-      if(assistantMsgId) {
-        await generateAndSaveAudio(answer, assistantMsgId);
-      }
+      saveMessage({ role: 'assistant', text: answer });
+      setStatus('idle');
 
     } catch (error) {
       console.error('Error processing query:', error);
@@ -141,26 +133,7 @@ export default function SunoBot() {
     }
   };
 
-  const generateAndSaveAudio = async (text: string, messageId: string) => {
-    if (!chatHistoryColRef) return;
-    try {
-      const { media } = await getSpokenResponse({ text });
-      const messageRef = doc(chatHistoryColRef, messageId);
-      // Use Firestore's updateDoc to merge the audioUrl field non-destructively
-      await updateDoc(messageRef, { audioUrl: media });
-      setStatus('idle');
-    } catch (error) {
-       console.error('Error generating audio:', error);
-       toast({
-        title: "Audio Error",
-        description: "Could not generate the audio response.",
-        variant: "destructive",
-      });
-      setStatus('idle');
-    }
-  }
-
-  const handlePlaybackToggle = (messageId: string) => {
+  const handlePlaybackToggle = async (messageId: string) => {
     if (audioPlayerRef.current && currentlyPlayingId === messageId) {
       audioPlayerRef.current.pause();
       audioPlayerRef.current = null;
@@ -175,17 +148,33 @@ export default function SunoBot() {
 
     const message = conversation?.find(m => m.id === messageId);
     
-    if (message?.audioUrl) {
-      const audio = new Audio(message.audioUrl);
-      audioPlayerRef.current = audio;
-      setCurrentlyPlayingId(messageId);
+    if (message?.text) {
       setStatus('speaking');
-      audio.play();
-      audio.onended = () => {
-        setCurrentlyPlayingId(null);
+      setCurrentlyPlayingId(messageId);
+      try {
+        const { media } = await getSpokenResponse({ text: message.text });
+        if (media) {
+          const audio = new Audio(media);
+          audioPlayerRef.current = audio;
+          audio.play();
+          audio.onended = () => {
+            setCurrentlyPlayingId(null);
+            setStatus('idle');
+            audioPlayerRef.current = null;
+          };
+        } else {
+          throw new Error('No audio media returned');
+        }
+      } catch (error) {
+        console.error('Error generating audio:', error);
+        toast({
+          title: "Audio Error",
+          description: "Could not generate the audio response.",
+          variant: "destructive",
+        });
         setStatus('idle');
-        audioPlayerRef.current = null;
-      };
+        setCurrentlyPlayingId(null);
+      }
     }
   };
 

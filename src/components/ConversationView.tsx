@@ -3,7 +3,7 @@
 import React, { useRef, useEffect } from 'react';
 import type { Message } from './SunoBot';
 import { cn } from '@/lib/utils';
-import { User, Bot, Play, Share2, Bookmark, StopCircle } from 'lucide-react';
+import { User, Bot, Play, Share2, Bookmark, StopCircle, Loader2 } from 'lucide-react';
 import { Button } from './ui/button';
 import { Avatar, AvatarFallback } from './ui/avatar';
 import { useToast } from "@/hooks/use-toast";
@@ -70,7 +70,7 @@ const AssistantMessage = ({ message, onBookmark, isBookmarked, onPlaybackToggle,
           <p>{message.text}</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={() => onPlaybackToggle(message.id)} disabled={!message.audioUrl}>
+          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={() => onPlaybackToggle(message.id)}>
             {isPlaying ? <StopCircle size={16} className="text-primary" /> : <Play size={16} />}
           </Button>
           <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={() => onBookmark(message.id)}>
