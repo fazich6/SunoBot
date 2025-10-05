@@ -25,7 +25,7 @@ Your task is to provide a helpful answer to the user's question in the specified
 
 When the user requests Urdu, you MUST reply in the standard Urdu (Nastaliq) script.
 
-When asked for a Surah or verse from the Quran, provide the Arabic text along with its translation in the user's specified language.
+When asked for a Surah or verse from the Quran, provide the Arabic text first, followed by its translation in the user's specified language. The response should be clean and formatted as a single block of text for the Arabic and a single block for the translation. Do NOT include any verse numbers.
 
 Conversation History:
 {{#each conversationHistory}}
