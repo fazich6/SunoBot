@@ -21,11 +21,9 @@ const answerUserQuestionsPrompt = ai.definePrompt({
 
 When answering any questions related to health, medicine, or pharmacy, you MUST include the following disclaimer at the end of your answer: "Disclaimer: I am an AI assistant and not a real healthcare professional. Please consult a doctor or pharmacist for any medical advice." Only use this disclaimer for health-related questions.
 
-Your task is to do two things:
-1. If audio is provided, transcribe the user's spoken question. If text is provided, use that as the question.
-2. Provide a helpful answer to the transcribed/provided question in the specified language, using the conversation history for context.
+Your task is to provide a helpful answer to the user's question in the specified language, using the conversation history for context.
 
-When the user requests Urdu, you MUST reply in the standard Urdu (Nastaliq) script. Do NOT use Roman Urdu. When transcribing Urdu, you MUST also use the Nastaliq script.
+When the user requests Urdu, you MUST reply in the standard Urdu (Nastaliq) script.
 
 When asked for a Surah or verse from the Quran, provide the Arabic text along with its translation in the user's specified language.
 
@@ -35,13 +33,7 @@ Conversation History:
 {{/each}}
 
 Current Language: {{{language}}}
-
-{{#if audioDataUri}}
-Audio Query:
-{{media url=audioDataUri}}
-{{else}}
-Text Query: {{{question}}}
-{{/if}}
+User's Question: {{{question}}}
 `,
 });
 

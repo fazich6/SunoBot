@@ -23,7 +23,12 @@ const transcribeUserVoiceInputPrompt = ai.definePrompt({
   name: 'transcribeUserVoiceInputPrompt',
   input: {schema: TranscribeUserVoiceInputInputSchema},
   output: {schema: TranscribeUserVoiceInputOutputSchema},
-  prompt: `Transcribe the following audio to text. The audio may be in either Urdu or English.\n\nAudio: {{media url=audioDataUri}}`,
+  prompt: `You are an expert audio transcriptionist. Transcribe the following audio to text. The user's language is specified, which will be either Urdu or English.
+
+When transcribing Urdu, you MUST use the standard Urdu (Nastaliq) script. Do NOT use Roman Urdu.
+
+Language: {{{language}}}
+Audio: {{media url=audioDataUri}}`,
 });
 
 const transcribeUserVoiceInputFlow = ai.defineFlow(

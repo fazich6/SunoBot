@@ -8,8 +8,7 @@ import { format } from 'date-fns';
 
 // answer-user-questions.ts
 export const AnswerUserQuestionsInputSchema = z.object({
-  question: z.string().optional().describe("The user's text query. Use this if audio is not provided."),
-  audioDataUri: z.string().optional().describe("The user's audio query as a data URI. Use this if available."),
+  question: z.string().describe("The user's text query."),
   conversationHistory: z.array(z.object({
     role: z.enum(['user', 'assistant']),
     text: z.string(),
@@ -20,7 +19,6 @@ export type AnswerUserQuestionsInput = z.infer<typeof AnswerUserQuestionsInputSc
 
 export const AnswerUserQuestionsOutputSchema = z.object({
   answer: z.string().describe('The AI-generated answer to the user\'s question.'),
-  transcribedText: z.string().optional().describe("The transcribed text from the user's audio input."),
 });
 export type AnswerUserQuestionsOutput = z.infer<typeof AnswerUserQuestionsOutputSchema>;
 
@@ -87,6 +85,7 @@ export const TranscribeUserVoiceInputInputSchema = z.object({
     .describe(
       'The audio data as a data URI that must include a MIME type and use Base64 encoding. Expected format: \'data:<mimetype>;base64,<encoded_data>\'.'
     ),
+  language: z.enum(['English', 'Urdu']).describe('The language the user is speaking in.'),
 });
 export type TranscribeUserVoiceInputInput = z.infer<typeof TranscribeUserVoiceInputInputSchema>;
 

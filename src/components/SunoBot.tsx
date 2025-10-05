@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { getAIAnswer, getSpokenResponse } from '@/app/actions';
+import { getAIAnswer, getSpokenResponse, getTranscription } from '@/app/actions';
 import { useAudioRecorder } from '@/lib/hooks/use-audio-recorder';
 import { SunoBotLogo, ThinkingIcon, Volume2 } from '@/components/icons';
 import HelperPacks from '@/components/HelperPacks';
@@ -78,20 +78,25 @@ export default function SunoBot() {
   const handleRecordingComplete = async (audioDataUri: string) => {
     setStatus('thinking');
     try {
-      const { answer, transcribedText } = await getAIAnswer({ 
-        audioDataUri,
+      // Step 1: Transcribe the audio first.
+      const { transcription } = await getTranscription({ audioDataUri, language });
+
+      if (!transcription) {
+        throw new Error('Transcription failed or returned empty.');
+      }
+      
+      // Save user's transcribed message
+      saveMessage({ role: 'user', text: transcription });
+      setShowFavorites(false);
+
+      // Step 2: Get the answer using the transcribed text.
+      const { answer } = await getAIAnswer({ 
+        question: transcription,
         conversationHistory: conversation?.slice(-5).map(m => ({role: m.role, text: m.text})) || [],
         language
        });
 
-      if (!transcribedText) {
-        throw new Error('Transcription failed.');
-      }
-      
-      saveMessage({ role: 'user', text: transcribedText });
       const assistantMessageId = await saveMessage({ role: 'assistant', text: answer, audioUrl: '' });
-      
-      setShowFavorites(false);
       
       if(assistantMessageId) {
         await playResponse(answer, assistantMessageId);
