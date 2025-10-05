@@ -90,9 +90,10 @@ export default function SunoBot() {
       setShowFavorites(false);
 
       // Step 2: Get the answer using the transcribed text.
+      const currentConversation = conversation || [];
       const { answer } = await getAIAnswer({ 
         question: transcription,
-        conversationHistory: conversation?.slice(-5).map(m => ({role: m.role, text: m.text})) || [],
+        conversationHistory: currentConversation.slice(-5).map(m => ({role: m.role, text: m.text})),
         language
        });
 
@@ -127,10 +128,11 @@ export default function SunoBot() {
     try {
       setStatus('thinking');
       saveMessage({ role: 'user', text: query });
-
+      
+      const currentConversation = conversation || [];
       const { answer } = await getAIAnswer({
         question: query,
-        conversationHistory: conversation?.slice(-5).map(m => ({role: m.role, text: m.text})) || [],
+        conversationHistory: currentConversation.slice(-5).map(m => ({role: m.role, text: m.text})),
         language
       });
       
@@ -245,9 +247,10 @@ export default function SunoBot() {
     }
   };
   
+  const currentConversation = conversation || [];
   const messagesToDisplay = showFavorites 
-    ? conversation?.filter(msg => msg.role === 'assistant' && bookmarkedIds.has(msg.id))
-    : conversation;
+    ? currentConversation.filter(msg => msg.role === 'assistant' && bookmarkedIds.has(msg.id))
+    : currentConversation;
 
 
   return (
