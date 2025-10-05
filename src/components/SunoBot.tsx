@@ -99,7 +99,7 @@ export default function SunoBot() {
       const assistantMessageId = await saveMessage({ role: 'assistant', text: answer, audioUrl: '' });
       
       if(assistantMessageId) {
-        await playResponse(answer, assistantMessageId);
+        await generateAndSaveAudio(answer, assistantMessageId);
       }
 
     } catch (error) {
@@ -137,7 +137,7 @@ export default function SunoBot() {
       const assistantMsgId = await saveMessage({ role: 'assistant', text: answer, audioUrl: '' });
       
       if(assistantMsgId) {
-        await playResponse(answer, assistantMsgId);
+        await generateAndSaveAudio(answer, assistantMsgId);
       }
 
     } catch (error) {
@@ -151,28 +151,25 @@ export default function SunoBot() {
     }
   };
 
-  const playResponse = async (text: string, messageId: string) => {
+  const generateAndSaveAudio = async (text: string, messageId: string) => {
     if (!chatHistoryColRef) return;
     try {
       const { media } = await getSpokenResponse({ text });
       const messageRef = doc(chatHistoryColRef, messageId);
       setDocumentNonBlocking(messageRef, { audioUrl: media }, { merge: true });
-      // The useCollection hook will update the conversation, and the button will become enabled.
-      // We then call handlePlaybackToggle to start playing.
-      handlePlaybackToggle(messageId, media);
+      setStatus('idle');
     } catch (error) {
-       console.error('Error playing response:', error);
+       console.error('Error generating audio:', error);
        toast({
         title: "Audio Error",
-        description: "Could not play the audio response.",
+        description: "Could not generate the audio response.",
         variant: "destructive",
       });
       setStatus('idle');
-      setCurrentlyPlayingId(null);
     }
   }
 
-  const handlePlaybackToggle = (messageId: string, audioUrlOverride?: string) => {
+  const handlePlaybackToggle = (messageId: string) => {
     if (audioPlayerRef.current && currentlyPlayingId === messageId) {
       audioPlayerRef.current.pause();
       audioPlayerRef.current = null;
@@ -186,10 +183,9 @@ export default function SunoBot() {
     }
 
     const message = conversation?.find(m => m.id === messageId);
-    const audioUrl = audioUrlOverride || message?.audioUrl;
-
-    if (audioUrl) {
-      const audio = new Audio(audioUrl);
+    
+    if (message?.audioUrl) {
+      const audio = new Audio(message.audioUrl);
       audioPlayerRef.current = audio;
       setCurrentlyPlayingId(messageId);
       setStatus('speaking');
