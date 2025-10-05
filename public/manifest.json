@@ -1,16 +1,16 @@
 {
-  "name": "SunoBot",
-  "short_name": "SunoBot",
-  "description": "Your friendly bilingual AI voice assistant.",
-  "start_url": "/",
-  "display": "standalone",
-  "background_color": "#F4E9E5",
-  "theme_color": "#FF6B35",
-  "icons": [
-    {
-      "src": "https://i.freeimage.host/2024/07/31/KXUNkKJ.png",
-      "sizes": "512x512",
-      "type": "image/png"
-    }
-  ]
+    "name": "SunoBot",
+    "short_name": "SunoBot",
+    "description": "Your friendly bilingual AI voice assistant.",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#F4E9E5",
+    "theme_color": "#FF6B35",
+    "icons": [
+        {
+            "src": "https://iili.io/KXUNkKJ.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        }
+    ]
 }
