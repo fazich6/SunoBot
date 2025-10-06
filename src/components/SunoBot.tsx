@@ -71,7 +71,7 @@ export default function SunoBot() {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [conversation, suggestedTopics]);
+  }, [conversation]);
 
 
   const fetchSuggestions = useCallback(async () => {
@@ -109,26 +109,27 @@ export default function SunoBot() {
     setStatus('thinking');
     setSuggestedTopics([]);
   
-    // Create an immediate, up-to-date history for the AI
+    await saveMessage({ role: 'user', text: query });
+  
     const currentMessages = conversation || [];
     const updatedHistoryForAI = [...currentMessages.map(m => ({role: m.role, text: m.text})), { role: 'user' as const, text: query }];
-  
-    // Save user message to Firestore
-    await saveMessage({ role: 'user', text: query });
   
     setShowFavorites(false);
   
     try {
+        const currentDate = new Date();
+        currentDate.setFullYear(2025);
+        currentDate.setMonth(9); // October is month 9 (0-indexed)
+
         const { answer } = await getAIAnswer({
             question: query,
             conversationHistory: updatedHistoryForAI.slice(-6), // Send last 6 messages for context
             language,
+            currentDate: currentDate.toDateString(),
         });
   
-        // Save assistant response to Firestore
         await saveMessage({ role: 'assistant', text: answer });
         
-        // Fetch suggestions based on the full, now-updated conversation
         if (settings?.enableTopicSuggestions) {
             fetchSuggestions();
         }
@@ -189,14 +190,6 @@ export default function SunoBot() {
       setStatus('listening');
     }
   };
-
-  useEffect(() => {
-    if (status === 'listening') {
-      startRecording();
-    } else {
-      stopRecording();
-    }
-  }, [status, startRecording, stopRecording]);
 
 
   const handlePlaybackToggle = async (messageId: string) => {
@@ -294,7 +287,7 @@ export default function SunoBot() {
           </Button>
         </div>
       </header>
-       <div ref={scrollRef} className="flex-grow overflow-y-auto p-4">
+       <div ref={scrollRef} className="flex-grow overflow-y-auto p-4 pb-0">
             { (messagesToDisplay || []).length === 0 ? (
               showFavorites ? (
                  <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground p-8">
@@ -316,11 +309,10 @@ export default function SunoBot() {
                />
             )}
             
-            {/* Mic section is now inside the scrollable area */}
-            <footer className="mt-8 flex flex-col items-center justify-center space-y-2">
+            <footer className="mt-8 flex flex-col items-center justify-center space-y-2 pb-4">
                 <MicrophoneButton
                     status={status}
-                    onClick={() => setStatus(status === 'listening' ? 'idle' : 'listening')}
+                    onClick={handleMicClick}
                 />
                 <p className="text-sm text-muted-foreground h-4">{getStatusMessage()}</p>
                 {suggestedTopics.length > 0 && (

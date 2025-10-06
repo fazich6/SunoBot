@@ -14,6 +14,7 @@ export const AnswerUserQuestionsInputSchema = z.object({
     text: z.string(),
   })).describe('The history of the conversation.'),
   language: z.enum(['English', 'Urdu']).describe('The language for the response.'),
+  currentDate: z.string().describe('The current date to provide context to the AI.'),
 });
 export type AnswerUserQuestionsInput = z.infer<typeof AnswerUserQuestionsInputSchema>;
 
@@ -33,7 +34,7 @@ export type SpeakResponsesInUrduEnglishMixInput = z.infer<typeof SpeakResponsesI
 export const SpeakResponsesInUrduEnglishMixOutputSchema = z.object({
   media: z.string().describe('The audio data URI of the spoken text in WAV format.'),
 });
-export type SpeakResponsesInUrduEnglishMixOutput = zinfer<typeof SpeakResponsesInUrduEnglishMixOutputSchema>;
+export type SpeakResponsesInUrduEnglishMixOutput = z.infer<typeof SpeakResponsesInUrduEnglishMixOutputSchema>;
 
 
 // analyze-image-flow.ts
