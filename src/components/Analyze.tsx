@@ -75,7 +75,7 @@ export default function Analyze() {
     setImageDataUri(dataUri);
 
     try {
-      const result = await getImageAnalysis({ imageDataUri: dataUri, language: 'English' });
+      const result = await getImageAnalysis({ imageDataUri: dataUri, language: 'Urdu' });
       setAnalysisResult(result);
       if (result.description) {
         const spokenResponse = await getSpokenResponse({ text: result.description, voice: 'Female' });
@@ -180,7 +180,7 @@ export default function Analyze() {
                         </div>
                     </CardHeader>
                     <CardContent>
-                        <p>{analysisResult.description}</p>
+                        <p dir="rtl" className="font-urdu text-right text-lg leading-relaxed">{analysisResult.description}</p>
                     </CardContent>
                 </Card>
                 {analysisResult.extractedText && (
