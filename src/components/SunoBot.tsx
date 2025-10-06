@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { getAIAnswer, getSpokenResponse, getTranscription, getTopicSuggestions } from '@/app/actions';
 import { useAudioRecorder } from '@/lib/hooks/use-audio-recorder';
 import { SunoBotLogo, ThinkingIcon, Volume2 } from '@/components/icons';
+import { Sparkles } from 'lucide-react';
 import HelperPacks from '@/components/HelperPacks';
 import ConversationView from '@/components/ConversationView';
 import MicrophoneButton from '@/components/MicrophoneButton';
@@ -111,7 +112,49 @@ export default function SunoBot() {
       await addDocumentNonBlocking(chatHistoryColRef, { ...message, createdAt: new Date().toISOString() });
   }
 
-  const handleRecordingComplete = async (audioDataUri: string) => {
+  const processQuery = useCallback(async (query: string) => {
+    if (!query || status === 'thinking') return;
+
+    setStatus('thinking');
+    setSuggestedTopics([]);
+
+    // Save user message
+    await saveMessage({ role: 'user', text: query });
+    setShowFavorites(false);
+
+    try {
+        // Construct an up-to-date history for the AI.
+        const currentMessages = conversation || [];
+        const updatedHistoryForAI = [...currentMessages.map(m => ({role: m.role, text: m.text})), { role: 'user' as const, text: query }];
+
+        const { answer } = await getAIAnswer({
+            question: query,
+            conversationHistory: updatedHistoryForAI.slice(-6), // Send last 6 messages
+            language,
+        });
+
+        // Save assistant response
+        await saveMessage({ role: 'assistant', text: answer });
+        
+        // Fetch suggestions based on the full, now-updated conversation
+        if (settings?.enableTopicSuggestions) {
+            fetchSuggestions();
+        }
+
+    } catch (error) {
+        console.error('Error processing query:', error);
+        toast({
+            title: "Error",
+            description: "Something went wrong while getting your answer. Please try again.",
+            variant: "destructive",
+        });
+    } finally {
+        setStatus('idle');
+    }
+}, [conversation, language, settings?.enableTopicSuggestions, status, fetchSuggestions, toast]);
+
+
+  const handleRecordingComplete = useCallback(async (audioDataUri: string) => {
     setStatus('thinking');
     try {
       const { transcription } = await getTranscription({ audioDataUri, language });
@@ -131,54 +174,30 @@ export default function SunoBot() {
       });
       setStatus('idle');
     }
-  };
+  }, [language, processQuery, toast]);
 
   const { isRecording, startRecording, stopRecording } = useAudioRecorder(handleRecordingComplete);
 
-  useEffect(() => {
-    if (status === 'listening' && !isRecording) {
-      startRecording();
-    } else if (status !== 'listening' && isRecording) {
-      stopRecording();
-    }
-  }, [status, isRecording, startRecording, stopRecording]);
+  const handleMicClick = () => {
+      if (showFavorites) setShowFavorites(false);
 
-  const processQuery = async (query: string) => {
-    if (!query || status === 'thinking') return;
-    
-    try {
-      setStatus('thinking');
-      setSuggestedTopics([]); // Clear old suggestions
-      await saveMessage({ role: 'user', text: query });
-      setShowFavorites(false);
-      
-      const currentConversation = conversation || [];
-      const history = currentConversation.length > 0 ? currentConversation.slice(-6) : [{ role: 'user', text: query }];
-
-      const { answer } = await getAIAnswer({
-        question: query,
-        conversationHistory: history.map(m => ({role: m.role, text: m.text})),
-        language
-      });
-      
-      await saveMessage({ role: 'assistant', text: answer });
-      
-      setStatus('idle');
-      
-      if (settings?.enableTopicSuggestions) {
-        fetchSuggestions();
+      if (status === 'speaking' && audioPlayerRef.current) {
+          audioPlayerRef.current.pause();
+          audioPlayerRef.current = null;
+          setCurrentlyPlayingId(null);
+          setStatus('idle');
+          return;
       }
-
-    } catch (error) {
-      console.error('Error processing query:', error);
-       toast({
-        title: "Error",
-        description: "Something went wrong while getting your answer. Please try again.",
-        variant: "destructive",
-      });
-       setStatus('idle');
-    }
+      
+      if (isRecording) {
+          stopRecording();
+          setStatus('thinking');
+      } else {
+          startRecording();
+          setStatus('listening');
+      }
   };
+
 
   const handlePlaybackToggle = async (messageId: string) => {
     if (audioPlayerRef.current && currentlyPlayingId === messageId) {
@@ -245,23 +264,6 @@ export default function SunoBot() {
     }
   };
 
-  const handleMicClick = () => {
-    if (showFavorites) setShowFavorites(false);
-    if (status === 'speaking' && audioPlayerRef.current) {
-      audioPlayerRef.current.pause();
-      audioPlayerRef.current = null;
-      setCurrentlyPlayingId(null);
-      setStatus('idle');
-      return;
-    }
-    
-    if (status === 'listening') {
-      setStatus('thinking'); 
-    } else {
-      setStatus('listening');
-    }
-  };
-
   const getStatusMessage = () => {
     switch (status) {
       case 'listening': return "Listening... Tap to stop";
@@ -292,9 +294,8 @@ export default function SunoBot() {
           </Button>
         </div>
       </header>
-
-      <div ref={scrollRef} className="flex-grow overflow-y-auto">
-        <div className="px-4 pt-4 pb-4">
+       <div ref={scrollRef} className="flex-grow overflow-y-auto">
+        <div className="px-4 pt-4 pb-28">
             { (messagesToDisplay || []).length === 0 ? (
               showFavorites ? (
                  <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground p-8">
@@ -317,25 +318,31 @@ export default function SunoBot() {
             )}
         </div>
       </div>
-      <footer className="p-4 flex flex-col items-center justify-center space-y-2 border-t">
+      <footer className="p-4 flex flex-col items-center justify-center space-y-2 border-t bg-background fixed bottom-14 left-0 right-0 w-full max-w-md mx-auto">
           <MicrophoneButton
-          status={status}
-          onClick={handleMicClick}
+            status={status}
+            onClick={handleMicClick}
           />
           <p className="text-sm text-muted-foreground h-4">{getStatusMessage()}</p>
           {suggestedTopics.length > 0 && (
-          <div className="flex flex-wrap justify-center gap-2 mt-2" dir="rtl">
-              {suggestedTopics.map((topic, index) => (
-              <Badge 
-                  key={index} 
-                  variant="outline" 
-                  className="cursor-pointer font-urdu text-base"
-                  onClick={() => processQuery(topic)}
-              >
-                  {topic}
-              </Badge>
-              ))}
-          </div>
+            <div className="w-full pt-2">
+              <div className="flex items-center gap-2 mb-2">
+                <Sparkles className="w-4 h-4 text-green-500" />
+                <h3 className="text-sm font-semibold">Suggested For You</h3>
+              </div>
+              <div className="flex flex-wrap justify-center gap-2" dir="rtl">
+                  {suggestedTopics.map((topic, index) => (
+                  <Badge 
+                      key={index} 
+                      variant="outline" 
+                      className="cursor-pointer font-urdu text-sm"
+                      onClick={() => processQuery(topic)}
+                  >
+                      {topic}
+                  </Badge>
+                  ))}
+              </div>
+            </div>
           )}
       </footer>
     </div>
