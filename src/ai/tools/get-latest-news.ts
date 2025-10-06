@@ -9,6 +9,19 @@ const NewsArticleSchema = z.object({
     summary: z.string().describe('A brief summary of the article.'),
 });
 
+// A new prompt that acts as a "search engine" for the tool.
+const newsSearchPrompt = ai.definePrompt(
+  {
+    name: 'newsSearchPrompt',
+    input: { schema: z.object({ topic: z.string() }) },
+    output: { schema: NewsArticleSchema },
+    prompt: `You are a news search engine. Provide a single, concise, and factual headline and summary for the following topic as if it were a news report. The source should be "AI News Service".
+
+Topic: {{{topic}}}`,
+  },
+);
+
+
 export const getLatestNews = ai.defineTool(
     {
         name: 'getLatestNews',
@@ -21,18 +34,15 @@ export const getLatestNews = ai.defineTool(
     async (input) => {
         console.log(`Fetching Pakistani news for topic: ${input.topic || 'general'}`);
 
-        if (input.topic && input.topic.toLowerCase().includes('prime minister')) {
-            return [
-                {
-                    headline: "Shehbaz Sharif is the current Prime Minister of Pakistan",
-                    source: "Official Government Sources",
-                    summary: "As of October 2025, the Prime Minister of Pakistan is Shehbaz Sharif. He is serving his current term in office."
-                }
-            ]
+        // If a specific topic is provided, use the AI to generate a targeted answer.
+        if (input.topic) {
+            const { output } = await newsSearchPrompt({ topic: input.topic });
+            if (output) {
+              return [output];
+            }
         }
 
-        // In a real application, this would call a News API.
-        // For this prototype, we will return dummy data.
+        // If no topic is provided, return general dummy data.
         return [
             {
                 headline: "Government Announces New Budget for Upcoming Fiscal Year",
