@@ -119,7 +119,7 @@ export default function SunoBot() {
         language
       });
       
-      saveMessage({ role: 'assistant', text: answer });
+      await saveMessage({ role: 'assistant', text: answer });
       setStatus('idle');
 
     } catch (error) {
