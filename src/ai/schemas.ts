@@ -98,7 +98,7 @@ export type TranscribeUserVoiceInputOutput = z.infer<typeof TranscribeUserVoiceI
 // suggest-topics-flow.ts
 export const SuggestTopicsInputSchema = z.object({
     userHistory: z.array(z.string()).describe("A list of user's past queries."),
-    currentInterests: z.array(z.string()).describe('A list of topics the user is currently interested in.'),
+    currentInterests: z.array(z.string()).optional().describe('A list of topics the user is currently interested in.'),
 });
 export type SuggestTopicsInput = z.infer<typeof SuggestTopicsInputSchema>;
 
