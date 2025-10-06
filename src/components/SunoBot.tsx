@@ -3,8 +3,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { getAIAnswer, getSpokenResponse, getTranscription, getTopicSuggestions } from '@/app/actions';
 import { useAudioRecorder } from '@/lib/hooks/use-audio-recorder';
-import { SunoBotLogo, ThinkingIcon, Volume2 } from '@/components/icons';
-import { Sparkles } from 'lucide-react';
+import { SunoBotLogo, ThinkingIcon, Volume2, Sparkles } from '@/components/icons';
 import HelperPacks from '@/components/HelperPacks';
 import ConversationView from '@/components/ConversationView';
 import MicrophoneButton from '@/components/MicrophoneButton';
@@ -15,12 +14,15 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection, addDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase';
 import { doc, collection, query, orderBy } from 'firebase/firestore';
+import type { ExtractedReminderFromChat } from '@/ai/schemas';
+import ReminderCard from './ReminderCard';
 
 export type Message = {
   id: string;
   role: 'user' | 'assistant';
   text: string;
   createdAt?: any;
+  extractedReminder?: ExtractedReminderFromChat;
 };
 
 type UserProfile = {
@@ -67,11 +69,15 @@ export default function SunoBot() {
     }
   }, [userProfile]);
 
-  useEffect(() => {
+  const scrollToBottom = useCallback(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [conversation]);
+  }, []);
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [conversation, scrollToBottom]);
 
 
   const fetchSuggestions = useCallback(async () => {
@@ -100,7 +106,9 @@ export default function SunoBot() {
   
   const saveMessage = async (message: Omit<Message, 'id' | 'createdAt'>) => {
       if (!chatHistoryColRef) return null;
-      await addDocumentNonBlocking(chatHistoryColRef, { ...message, createdAt: new Date().toISOString() });
+      // Filter out undefined fields before saving
+      const cleanMessage = Object.fromEntries(Object.entries(message).filter(([_, v]) => v !== undefined));
+      await addDocumentNonBlocking(chatHistoryColRef, { ...cleanMessage, createdAt: new Date().toISOString() });
   }
 
   const processQuery = useCallback(async (query: string) => {
@@ -108,28 +116,37 @@ export default function SunoBot() {
   
     setStatus('thinking');
     setSuggestedTopics([]);
-  
+    setShowFavorites(false);
+
+    // Save user message immediately
     await saveMessage({ role: 'user', text: query });
   
+    // Create history for AI, including the new user message.
+    // We use the local `conversation` state which updates from Firestore,
+    // and append the new user query to it for the AI call.
     const currentMessages = conversation || [];
     const updatedHistoryForAI = [...currentMessages.map(m => ({role: m.role, text: m.text})), { role: 'user' as const, text: query }];
-  
-    setShowFavorites(false);
   
     try {
         const currentDate = new Date();
         currentDate.setFullYear(2025);
         currentDate.setMonth(9); // October is month 9 (0-indexed)
 
-        const { answer } = await getAIAnswer({
+        const aiResponse = await getAIAnswer({
             question: query,
             conversationHistory: updatedHistoryForAI.slice(-6), // Send last 6 messages for context
             language,
             currentDate: currentDate.toDateString(),
         });
   
-        await saveMessage({ role: 'assistant', text: answer });
-        
+        // Save the full AI response
+        const aiMessageToSave: Omit<Message, 'id' | 'createdAt'> = {
+            role: 'assistant',
+            text: aiResponse.answer,
+            ...(aiResponse.extractedReminder && { extractedReminder: aiResponse.extractedReminder })
+        };
+        await saveMessage(aiMessageToSave);
+
         if (settings?.enableTopicSuggestions) {
             fetchSuggestions();
         }
@@ -171,24 +188,23 @@ export default function SunoBot() {
 
   const { isRecording, startRecording, stopRecording } = useAudioRecorder(handleRecordingComplete);
   
-  const handleMicClick = () => {
+  const handleMicPress = () => {
     if (showFavorites) setShowFavorites(false);
-  
     if (status === 'speaking' && audioPlayerRef.current) {
-      audioPlayerRef.current.pause();
-      audioPlayerRef.current = null;
-      setCurrentlyPlayingId(null);
-      setStatus('idle');
-      return;
-    }
-    
-    if (isRecording) {
-      stopRecording();
-      setStatus('thinking'); 
+        audioPlayerRef.current.pause();
+        setCurrentlyPlayingId(null);
+        setStatus('idle');
     } else {
-      startRecording();
-      setStatus('listening');
+        startRecording();
+        setStatus('listening');
     }
+  };
+  
+  const handleMicRelease = () => {
+      if (isRecording) {
+          stopRecording();
+          setStatus('thinking');
+      }
   };
 
 
@@ -256,13 +272,23 @@ export default function SunoBot() {
         setDocumentNonBlocking(userProfileRef, { bookmarkedMessageIds: Array.from(newSet) }, { merge: true });
     }
   };
+  
+  const handleSaveReminder = (reminder: ExtractedReminderFromChat) => {
+    if (!chatHistoryColRef) return;
+    const remindersColRef = collection(firestore, 'users', user.uid, 'reminders');
+    addDocumentNonBlocking(remindersColRef, { ...reminder, createdAt: new Date().toISOString() });
+    toast({
+        title: "Reminder Saved!",
+        description: `Your reminder for ${reminder.medicineName} has been added.`
+    })
+  }
 
   const getStatusMessage = () => {
     switch (status) {
-      case 'listening': return "Listening... Tap to stop";
+      case 'listening': return "Listening... Release to stop";
       case 'thinking': return "Thinking...";
       case 'speaking': return "Speaking...";
-      default: return "Tap to speak";
+      default: return "Hold to speak";
     }
   };
   
@@ -287,7 +313,8 @@ export default function SunoBot() {
           </Button>
         </div>
       </header>
-       <div ref={scrollRef} className="flex-grow overflow-y-auto p-4 pb-0">
+      <div ref={scrollRef} className="flex-grow overflow-y-auto p-4">
+        <div className="pb-24">
             { (messagesToDisplay || []).length === 0 ? (
               showFavorites ? (
                  <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground p-8">
@@ -306,37 +333,41 @@ export default function SunoBot() {
                  onPlaybackToggle={handlePlaybackToggle}
                  currentlyPlayingId={currentlyPlayingId}
                  language={language}
+                 onSaveReminder={handleSaveReminder}
                />
             )}
-            
-            <footer className="mt-8 flex flex-col items-center justify-center space-y-2 pb-4">
-                <MicrophoneButton
-                    status={status}
-                    onClick={handleMicClick}
-                />
-                <p className="text-sm text-muted-foreground h-4">{getStatusMessage()}</p>
-                {suggestedTopics.length > 0 && (
-                    <div className="w-full pt-4">
-                    <div className="flex items-center justify-center gap-2 mb-2">
-                        <Sparkles className="w-4 h-4 text-green-500" />
-                        <h3 className="text-sm font-semibold">Suggested For You</h3>
-                    </div>
-                    <div className="flex flex-wrap justify-center gap-2" dir="rtl">
-                        {suggestedTopics.map((topic, index) => (
-                        <Badge 
-                            key={index} 
-                            variant="outline" 
-                            className="cursor-pointer font-urdu text-sm"
-                            onClick={() => processQuery(topic)}
-                        >
-                            {topic}
-                        </Badge>
-                        ))}
-                    </div>
-                    </div>
-                )}
-            </footer>
+        </div>
       </div>
+      <footer className="absolute bottom-16 left-0 right-0 p-4 flex flex-col items-center justify-center space-y-2 bg-background/80 backdrop-blur-sm border-t">
+        {suggestedTopics.length > 0 && !showFavorites && (
+            <div className="w-full">
+            <div className="flex items-center justify-center gap-2 mb-2">
+                <Sparkles className="w-4 h-4 text-green-500" />
+                <h3 className="text-sm font-semibold">Suggested For You</h3>
+            </div>
+            <div className="flex flex-wrap justify-center gap-2" dir="rtl">
+                {suggestedTopics.map((topic, index) => (
+                <Badge 
+                    key={index} 
+                    variant="outline" 
+                    className="cursor-pointer font-urdu text-sm"
+                    onClick={() => processQuery(topic)}
+                >
+                    {topic}
+                </Badge>
+                ))}
+            </div>
+            </div>
+        )}
+        <MicrophoneButton
+            status={status}
+            onMouseDown={handleMicPress}
+            onMouseUp={handleMicRelease}
+            onTouchStart={handleMicPress}
+            onTouchEnd={handleMicRelease}
+        />
+        <p className="text-sm text-muted-foreground h-4">{getStatusMessage()}</p>
+      </footer>
     </div>
   );
 }

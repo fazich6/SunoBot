@@ -18,10 +18,18 @@ export const AnswerUserQuestionsInputSchema = z.object({
 });
 export type AnswerUserQuestionsInput = z.infer<typeof AnswerUserQuestionsInputSchema>;
 
+const ReminderExtractionSchema = z.object({
+  medicineName: z.string().describe('The name of the medicine.'),
+  time: z.string().describe('The time for the reminder in HH:mm 24-hour format.'),
+  repeatDaily: z.boolean().describe('Whether the reminder should repeat daily.'),
+});
+
 export const AnswerUserQuestionsOutputSchema = z.object({
   answer: z.string().describe('The AI-generated answer to the user\'s question.'),
+  extractedReminder: ReminderExtractionSchema.optional().describe('A structured reminder object if the user asked to set a reminder.'),
 });
 export type AnswerUserQuestionsOutput = z.infer<typeof AnswerUserQuestionsOutputSchema>;
+export type ExtractedReminderFromChat = z.infer<typeof ReminderExtractionSchema>;
 
 
 // speak-responses-in-urdu-english-mix.ts
