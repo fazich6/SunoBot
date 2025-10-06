@@ -33,7 +33,7 @@ export type SpeakResponsesInUrduEnglishMixInput = z.infer<typeof SpeakResponsesI
 export const SpeakResponsesInUrduEnglishMixOutputSchema = z.object({
   media: z.string().describe('The audio data URI of the spoken text in WAV format.'),
 });
-export type SpeakResponsesInUrduEnglishMixOutput = z.infer<typeof SpeakResponsesInUrduEnglishMixOutputSchema>;
+export type SpeakResponsesInUrduEnglishMixOutput = zinfer<typeof SpeakResponsesInUrduEnglishMixOutputSchema>;
 
 
 // analyze-image-flow.ts
