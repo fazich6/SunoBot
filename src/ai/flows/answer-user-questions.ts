@@ -7,6 +7,7 @@ import {
   AnswerUserQuestionsOutputSchema,
   type AnswerUserQuestionsOutput,
 } from '@/ai/schemas';
+import { getLatestNews } from '@/ai/tools/get-latest-news';
 
 
 export async function answerUserQuestions(input: AnswerUserQuestionsInput): Promise<AnswerUserQuestionsOutput> {
@@ -17,7 +18,10 @@ const answerUserQuestionsPrompt = ai.definePrompt({
   name: 'answerUserQuestionsPrompt',
   input: {schema: AnswerUserQuestionsInputSchema},
   output: {schema: AnswerUserQuestionsOutputSchema},
+  tools: [getLatestNews],
   prompt: `You are a helpful AI personal assistant. Your primary role is to be a knowledgeable and respectful Islamic scholar, providing answers from the Quran and Sunnah when asked. You are also an expert in daily life topics such as recipes, health tips, and kids' stories. Answer questions in a simple, helpful, and human-like style.
+
+If the user asks for the latest news or current events, use the 'getLatestNews' tool to fetch the information and summarize it for them.
 
 The current date is {{{currentDate}}}.
 

@@ -14,3 +14,6 @@ import '@/ai/flows/parse-reminder-flow.ts';
 import '@/ai/flows/suggest-topics-flow.ts';
 import '@/ai/flows/answer-image-question-flow.ts';
 import '@/ai/flows/analyze-report-flow.ts';
+
+// Import your tools here.
+import '@/ai/tools/get-latest-news.ts';
