@@ -129,7 +129,7 @@ export default function SunoBot() {
             question: query,
             conversationHistory: currentConversationForAI.map(m => ({role: m.role, text: m.text})).slice(-6), // Send last 6 messages for context
             language,
-            currentDate: currentDate.toDateString(),
+            currentDate: "October 2025",
         });
         
         const aiMessageToSave: Omit<Message, 'id' | 'createdAt'> = {
@@ -184,9 +184,13 @@ export default function SunoBot() {
 
   const { isRecording, startRecording, stopRecording } = useAudioRecorder(handleRecordingComplete);
   
-  const handleMicPress = () => {
+  const handleMicClick = () => {
     if (showFavorites) setShowFavorites(false);
-    if (status === 'speaking' && audioPlayerRef.current) {
+    
+    if (isRecording) {
+      stopRecording();
+      setStatus('thinking');
+    } else if (status === 'speaking' && audioPlayerRef.current) {
         audioPlayerRef.current.pause();
         setCurrentlyPlayingId(null);
         setStatus('idle');
@@ -195,14 +199,6 @@ export default function SunoBot() {
         setStatus('listening');
     }
   };
-  
-  const handleMicRelease = () => {
-      if (isRecording) {
-          stopRecording();
-          setStatus('thinking');
-      }
-  };
-
 
   const handlePlaybackToggle = async (messageId: string) => {
     if (audioPlayerRef.current && currentlyPlayingId === messageId) {
@@ -271,10 +267,10 @@ export default function SunoBot() {
 
   const getStatusMessage = () => {
     switch (status) {
-      case 'listening': return "Listening... Release to stop";
+      case 'listening': return "Listening...";
       case 'thinking': return "Thinking...";
       case 'speaking': return "Speaking...";
-      default: return "Hold to speak";
+      default: return "Tap to speak or stop";
     }
   };
   
@@ -343,10 +339,7 @@ export default function SunoBot() {
             )}
             <MicrophoneButton
                 status={status}
-                onMouseDown={handleMicPress}
-                onMouseUp={handleMicRelease}
-                onTouchStart={handleMicPress}
-                onTouchEnd={handleMicRelease}
+                onClick={handleMicClick}
                 className="my-4"
             />
             <p className="text-sm text-muted-foreground h-4">{getStatusMessage()}</p>
