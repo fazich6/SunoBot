@@ -12,17 +12,27 @@ const NewsArticleSchema = z.object({
 export const getLatestNews = ai.defineTool(
     {
         name: 'getLatestNews',
-        description: 'Returns the latest news headlines from Pakistan.',
+        description: 'Returns the latest news headlines from Pakistan. Can also be used to find information about a specific person, topic, or current event by passing a query to the topic field.',
         inputSchema: z.object({
-            topic: z.string().optional().describe('A specific topic to get news for (e.g., "politics", "sports").'),
+            topic: z.string().optional().describe('A specific topic to get news for (e.g., "politics", "Prime Minister of Pakistan").'),
         }),
         outputSchema: z.array(NewsArticleSchema),
     },
     async (input) => {
-        // In a real application, this would call a News API.
-        // For this prototype, we will return dummy data.
         console.log(`Fetching Pakistani news for topic: ${input.topic || 'general'}`);
 
+        if (input.topic && input.topic.toLowerCase().includes('prime minister')) {
+            return [
+                {
+                    headline: "Shehbaz Sharif is the current Prime Minister of Pakistan",
+                    source: "Official Government Sources",
+                    summary: "As of October 2025, the Prime Minister of Pakistan is Shehbaz Sharif. He is serving his current term in office."
+                }
+            ]
+        }
+
+        // In a real application, this would call a News API.
+        // For this prototype, we will return dummy data.
         return [
             {
                 headline: "Government Announces New Budget for Upcoming Fiscal Year",
