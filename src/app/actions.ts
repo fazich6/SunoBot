@@ -8,6 +8,7 @@ import { parseReminder } from '@/ai/flows/parse-reminder-flow';
 import { transcribeUserVoiceInput } from '@/ai/flows/transcribe-user-voice-input';
 import { answerImageQuestion } from '@/ai/flows/answer-image-question-flow';
 import { analyzeReport } from '@/ai/flows/analyze-report-flow';
+import { suggestTopics } from '@/ai/flows/suggest-topics-flow';
 
 import type {
   AnswerUserQuestionsInput,
@@ -26,6 +27,8 @@ import type {
   AnswerImageQuestionOutput,
   AnalyzeReportInput,
   AnalyzeReportOutput,
+  SuggestTopicsInput,
+  SuggestTopicsOutput,
 } from '@/ai/schemas';
 
 export async function getAIAnswer(
@@ -74,4 +77,10 @@ export async function getReportAnalysis(
   input: AnalyzeReportInput
 ): Promise<AnalyzeReportOutput> {
   return await analyzeReport(input);
+}
+
+export async function getTopicSuggestions(
+  input: SuggestTopicsInput
+): Promise<SuggestTopicsOutput> {
+  return await suggestTopics(input);
 }

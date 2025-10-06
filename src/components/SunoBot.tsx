@@ -1,19 +1,19 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
-import { getAIAnswer, getSpokenResponse, getTranscription } from '@/app/actions';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { getAIAnswer, getSpokenResponse, getTranscription, getTopicSuggestions } from '@/app/actions';
 import { useAudioRecorder } from '@/lib/hooks/use-audio-recorder';
 import { SunoBotLogo, ThinkingIcon, Volume2 } from '@/components/icons';
 import HelperPacks from '@/components/HelperPacks';
 import ConversationView from '@/components/ConversationView';
 import MicrophoneButton from '@/components/MicrophoneButton';
 import { useToast } from "@/hooks/use-toast";
-import { Bookmark } from 'lucide-react';
+import { Bookmark, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection, addDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase';
 import { doc, collection, query, orderBy } from 'firebase/firestore';
-
 
 export type Message = {
   id: string;
@@ -40,6 +40,7 @@ export default function SunoBot() {
   const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(new Set());
   const [showFavorites, setShowFavorites] = useState(false);
   const [currentlyPlayingId, setCurrentlyPlayingId] = useState<string | null>(null);
+  const [suggestedTopics, setSuggestedTopics] = useState<string[]>([]);
   const audioPlayerRef = useRef<HTMLAudioElement | null>(null);
   const { toast } = useToast();
   const { user } = useUser();
@@ -52,16 +53,44 @@ export default function SunoBot() {
   const userProfileRef = useMemoFirebase(() => user ? doc(firestore, 'users', user.uid) : null, [user, firestore]);
   const { data: userProfile } = useDoc<UserProfile>(userProfileRef);
 
+  const chatHistoryColRef = useMemoFirebase(() => user ? collection(firestore, 'users', user.uid, 'chatHistory') : null, [user, firestore]);
+  const chatHistoryQuery = useMemoFirebase(() => chatHistoryColRef ? query(chatHistoryColRef, orderBy('createdAt', 'asc')) : null, [chatHistoryColRef]);
+  const { data: conversation, isLoading: isHistoryLoading } = useCollection<Message>(chatHistoryQuery);
+  
+  useEffect(() => {
+    // Check for a prompt from the Packs page
+    const packPrompt = sessionStorage.getItem('sunobot_pack_prompt');
+    if (packPrompt) {
+      sessionStorage.removeItem('sunobot_pack_prompt');
+      processQuery(packPrompt);
+    }
+  }, []);
+
   useEffect(() => {
     if (userProfile?.bookmarkedMessageIds) {
         setBookmarkedIds(new Set(userProfile.bookmarkedMessageIds));
     }
   }, [userProfile]);
 
-  const chatHistoryColRef = useMemoFirebase(() => user ? collection(firestore, 'users', user.uid, 'chatHistory') : null, [user, firestore]);
-  const chatHistoryQuery = useMemoFirebase(() => chatHistoryColRef ? query(chatHistoryColRef, orderBy('createdAt', 'asc')) : null, [chatHistoryColRef]);
-  const { data: conversation, isLoading: isHistoryLoading } = useCollection<Message>(chatHistoryQuery);
 
+  const fetchSuggestions = useCallback(async () => {
+    if (!conversation || conversation.length === 0 || !settings?.enableTopicSuggestions) {
+      setSuggestedTopics([]);
+      return;
+    };
+
+    try {
+      const result = await getTopicSuggestions({
+        userHistory: conversation.map(m => m.text),
+        currentInterests: [],
+      });
+      setSuggestedTopics(result.suggestedTopics.slice(0, 3)); // Limit to 3 suggestions
+    } catch (error) {
+      console.error("Failed to fetch suggestions:", error);
+      setSuggestedTopics([]); // Clear suggestions on error
+    }
+  }, [conversation, settings?.enableTopicSuggestions]);
+  
   const handleLanguageToggle = () => {
     if (!settingsRef || !settings) return;
     const newLanguage = language === 'English' ? 'Urdu' : 'English';
@@ -70,8 +99,7 @@ export default function SunoBot() {
   
   const saveMessage = async (message: Omit<Message, 'id' | 'createdAt'>) => {
       if (!chatHistoryColRef) return null;
-      const docRef = await addDocumentNonBlocking(chatHistoryColRef, { ...message, createdAt: new Date().toISOString() });
-      return docRef?.id || null;
+      await addDocumentNonBlocking(chatHistoryColRef, { ...message, createdAt: new Date().toISOString() });
   }
 
   const handleRecordingComplete = async (audioDataUri: string) => {
@@ -83,7 +111,7 @@ export default function SunoBot() {
         throw new Error('Transcription failed or returned empty.');
       }
       
-      await processQuery(transcription, true);
+      await processQuery(transcription);
 
     } catch (error) {
       console.error('Error during transcription and response:', error);
@@ -106,21 +134,29 @@ export default function SunoBot() {
     }
   }, [status, isRecording, startRecording, stopRecording]);
 
-  const processQuery = async (query: string, fromVoice: boolean = false) => {
+  const processQuery = async (query: string) => {
+    if (!query || status === 'thinking') return;
+    
     try {
       setStatus('thinking');
-      saveMessage({ role: 'user', text: query });
+      setSuggestedTopics([]); // Clear old suggestions
+      await saveMessage({ role: 'user', text: query });
       setShowFavorites(false);
       
       const currentConversation = conversation || [];
+      const history = currentConversation.length > 0 ? currentConversation : [{ role: 'user', text: query }];
+
       const { answer } = await getAIAnswer({
         question: query,
-        conversationHistory: currentConversation.slice(-5).map(m => ({role: m.role, text: m.text})),
+        conversationHistory: history.slice(-6).map(m => ({role: m.role, text: m.text})),
         language
       });
       
       await saveMessage({ role: 'assistant', text: answer });
-      setStatus('idle');
+      
+      if (settings?.enableTopicSuggestions) {
+        fetchSuggestions();
+      }
 
     } catch (error) {
       console.error('Error processing query:', error);
@@ -129,7 +165,8 @@ export default function SunoBot() {
         description: "Something went wrong while getting your answer. Please try again.",
         variant: "destructive",
       });
-      setStatus('idle');
+    } finally {
+        setStatus('idle');
     }
   };
 
@@ -178,7 +215,6 @@ export default function SunoBot() {
     }
   };
 
-
   const handleHelperPackClick = async (prompt: string) => {
     if (status !== 'idle') return;
     setShowFavorites(false);
@@ -210,9 +246,9 @@ export default function SunoBot() {
     }
     
     if (status === 'listening') {
-      setStatus('thinking'); // This will trigger stopRecording via useEffect
+      setStatus('thinking'); 
     } else {
-      setStatus('listening'); // This will trigger startRecording via useEffect
+      setStatus('listening');
     }
   };
 
@@ -269,8 +305,22 @@ export default function SunoBot() {
            />
         )}
       </div>
-
+        
       <footer className="p-4 flex flex-col items-center justify-center space-y-2 border-t border-border/50 bg-background/50 backdrop-blur-sm">
+        {suggestedTopics.length > 0 && (
+          <div className="flex flex-wrap justify-center gap-2 mb-2" dir="rtl">
+            {suggestedTopics.map((topic, index) => (
+              <Badge 
+                key={index} 
+                variant="outline" 
+                className="cursor-pointer font-urdu text-base"
+                onClick={() => processQuery(topic)}
+              >
+                {topic}
+              </Badge>
+            ))}
+          </div>
+        )}
         <MicrophoneButton
           status={status}
           onClick={handleMicClick}

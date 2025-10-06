@@ -7,11 +7,12 @@ import Homework from '@/components/Homework';
 import Reminders from '@/components/Reminders';
 import Profile from '@/app/profile/page';
 import Reports from '@/app/reports/page';
+import Packs from '@/app/packs/page';
 import { Button } from '@/components/ui/button';
-import { MessageSquare, Camera, BookOpen, Bell, User, ClipboardList } from 'lucide-react';
+import { MessageSquare, Camera, Bell, User, ClipboardList, Package } from 'lucide-react';
 import { useUser } from '@/firebase';
 
-type ActiveView = 'chat' | 'analyze' | 'homework' | 'reminders' | 'profile' | 'reports';
+type ActiveView = 'chat' | 'analyze' | 'homework' | 'reminders' | 'profile' | 'reports' | 'packs';
 
 const NavItem = ({
   view,
@@ -50,8 +51,13 @@ export default function App() {
         return <SunoBot />;
       case 'analyze':
         return <Analyze />;
-      case 'homework':
-        return <Homework />;
+      case 'packs':
+        return <Packs onPackClick={(prompt) => {
+          // This is a bit of a hack to pass the prompt to the chat view
+          // A better solution would be to use a global state manager
+            sessionStorage.setItem('sunobot_pack_prompt', prompt);
+            setActiveView('chat');
+        }}/>;
       case 'reminders':
         return <Reminders />;
       case 'reports':
@@ -80,6 +86,13 @@ export default function App() {
           setView={setActiveView}
           icon={Camera}
           label="Analyze"
+        />
+        <NavItem
+          view="packs"
+          activeView={activeView}
+          setView={setActiveView}
+          icon={Package}
+          label="Packs"
         />
         <NavItem
           view="reports"
