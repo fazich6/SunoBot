@@ -294,7 +294,7 @@ export default function SunoBot() {
       </header>
 
       <div ref={scrollRef} className="flex-grow overflow-y-auto">
-        <div className="px-4 pt-4 pb-28">
+        <div className="px-4 pt-4 pb-4">
             { (messagesToDisplay || []).length === 0 ? (
               showFavorites ? (
                  <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground p-8">
@@ -316,29 +316,28 @@ export default function SunoBot() {
                />
             )}
         </div>
+        <footer className="p-4 flex flex-col items-center justify-center space-y-2 border-t">
+            {suggestedTopics.length > 0 && (
+            <div className="flex flex-wrap justify-center gap-2 mb-2" dir="rtl">
+                {suggestedTopics.map((topic, index) => (
+                <Badge 
+                    key={index} 
+                    variant="outline" 
+                    className="cursor-pointer font-urdu text-base"
+                    onClick={() => processQuery(topic)}
+                >
+                    {topic}
+                </Badge>
+                ))}
+            </div>
+            )}
+            <MicrophoneButton
+            status={status}
+            onClick={handleMicClick}
+            />
+            <p className="text-sm text-muted-foreground h-4">{getStatusMessage()}</p>
+        </footer>
       </div>
-        
-      <footer className="absolute bottom-0 left-0 right-0 p-4 flex flex-col items-center justify-center space-y-2 border-t border-border/50 bg-background/80 backdrop-blur-sm">
-        {suggestedTopics.length > 0 && (
-          <div className="flex flex-wrap justify-center gap-2 mb-2" dir="rtl">
-            {suggestedTopics.map((topic, index) => (
-              <Badge 
-                key={index} 
-                variant="outline" 
-                className="cursor-pointer font-urdu text-base"
-                onClick={() => processQuery(topic)}
-              >
-                {topic}
-              </Badge>
-            ))}
-          </div>
-        )}
-        <MicrophoneButton
-          status={status}
-          onClick={handleMicClick}
-        />
-        <p className="text-sm text-muted-foreground h-4">{getStatusMessage()}</p>
-      </footer>
     </div>
   );
 }
