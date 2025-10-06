@@ -3,7 +3,8 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { getAIAnswer, getSpokenResponse, getTranscription, getTopicSuggestions } from '@/app/actions';
 import { useAudioRecorder } from '@/lib/hooks/use-audio-recorder';
-import { SunoBotLogo, ThinkingIcon, Volume2, Sparkles } from '@/components/icons';
+import { SunoBotLogo, ThinkingIcon, Volume2 } from '@/components/icons';
+import { Sparkles } from 'lucide-react';
 import HelperPacks from '@/components/HelperPacks';
 import ConversationView from '@/components/ConversationView';
 import MicrophoneButton from '@/components/MicrophoneButton';
@@ -104,32 +105,34 @@ export default function SunoBot() {
 
   const processQuery = useCallback(async (query: string) => {
     if (!query || status === 'thinking') return;
-
+  
     setStatus('thinking');
     setSuggestedTopics([]);
-
-    // Save user message and create an immediate, up-to-date history
-    await saveMessage({ role: 'user', text: query });
+  
+    // Create an immediate, up-to-date history for the AI
     const currentMessages = conversation || [];
     const updatedHistoryForAI = [...currentMessages.map(m => ({role: m.role, text: m.text})), { role: 'user' as const, text: query }];
-
+  
+    // Save user message to Firestore
+    await saveMessage({ role: 'user', text: query });
+  
     setShowFavorites(false);
-
+  
     try {
         const { answer } = await getAIAnswer({
             question: query,
-            conversationHistory: updatedHistoryForAI.slice(-6), // Send last 6 messages
+            conversationHistory: updatedHistoryForAI.slice(-6), // Send last 6 messages for context
             language,
         });
-
-        // Save assistant response
+  
+        // Save assistant response to Firestore
         await saveMessage({ role: 'assistant', text: answer });
         
         // Fetch suggestions based on the full, now-updated conversation
         if (settings?.enableTopicSuggestions) {
             fetchSuggestions();
         }
-
+  
     } catch (error) {
         console.error('Error processing query:', error);
         toast({
@@ -140,7 +143,7 @@ export default function SunoBot() {
     } finally {
         setStatus('idle');
     }
-}, [conversation, language, settings?.enableTopicSuggestions, status, fetchSuggestions, toast]);
+  }, [conversation, language, settings?.enableTopicSuggestions, status, fetchSuggestions, toast]);
 
 
   const handleRecordingComplete = useCallback(async (audioDataUri: string) => {
@@ -166,26 +169,34 @@ export default function SunoBot() {
   }, [language, processQuery, toast]);
 
   const { isRecording, startRecording, stopRecording } = useAudioRecorder(handleRecordingComplete);
-
+  
   const handleMicClick = () => {
-      if (showFavorites) setShowFavorites(false);
-
-      if (status === 'speaking' && audioPlayerRef.current) {
-          audioPlayerRef.current.pause();
-          audioPlayerRef.current = null;
-          setCurrentlyPlayingId(null);
-          setStatus('idle');
-          return;
-      }
-      
-      if (isRecording) {
-          stopRecording();
-          setStatus('thinking');
-      } else {
-          startRecording();
-          setStatus('listening');
-      }
+    if (showFavorites) setShowFavorites(false);
+  
+    if (status === 'speaking' && audioPlayerRef.current) {
+      audioPlayerRef.current.pause();
+      audioPlayerRef.current = null;
+      setCurrentlyPlayingId(null);
+      setStatus('idle');
+      return;
+    }
+    
+    if (isRecording) {
+      stopRecording();
+      setStatus('thinking'); 
+    } else {
+      startRecording();
+      setStatus('listening');
+    }
   };
+
+  useEffect(() => {
+    if (status === 'listening') {
+      startRecording();
+    } else {
+      stopRecording();
+    }
+  }, [status, startRecording, stopRecording]);
 
 
   const handlePlaybackToggle = async (messageId: string) => {
@@ -283,7 +294,7 @@ export default function SunoBot() {
           </Button>
         </div>
       </header>
-       <div ref={scrollRef} className="flex-grow overflow-y-auto p-4 pb-40">
+       <div ref={scrollRef} className="flex-grow overflow-y-auto p-4">
             { (messagesToDisplay || []).length === 0 ? (
               showFavorites ? (
                  <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground p-8">
@@ -309,7 +320,7 @@ export default function SunoBot() {
             <footer className="mt-8 flex flex-col items-center justify-center space-y-2">
                 <MicrophoneButton
                     status={status}
-                    onClick={handleMicClick}
+                    onClick={() => setStatus(status === 'listening' ? 'idle' : 'listening')}
                 />
                 <p className="text-sm text-muted-foreground h-4">{getStatusMessage()}</p>
                 {suggestedTopics.length > 0 && (
