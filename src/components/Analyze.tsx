@@ -3,75 +3,69 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
-import { Camera, RefreshCcw, Send, Loader2, Mic, Play, StopCircle, X } from 'lucide-react';
+import { Camera, RefreshCcw, Loader2, Bot, Type, Play, StopCircle, Video, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { useAudioRecorder } from '@/lib/hooks/use-audio-recorder';
-import { getImageQuestionAnswer, getSpokenResponse } from '@/app/actions';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { getImageAnalysis, getSpokenResponse } from '@/app/actions';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 
 export default function Analyze() {
+  const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
+  const [isCapturing, setIsCapturing] = useState(true);
   const [imageDataUri, setImageDataUri] = useState<string | null>(null);
-  const [isCapturing, setIsCapturing] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [facingMode, setFacingMode] = useState<'user' | 'environment'>('environment');
+  const [analysisResult, setAnalysisResult] = useState<{ description: string; extractedText?: string; } | null>(null);
   const [spokenResponseUrl, setSpokenResponseUrl] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [transcribedText, setTranscribedText] = useState<string | null>(null);
-  
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [facingMode, setFacingMode] = useState<'user' | 'environment'>('environment');
+
   const videoRef = useRef<HTMLVideoElement>(null);
   const audioPlayerRef = useRef<HTMLAudioElement | null>(null);
   const { toast } = useToast();
 
-  const stopPlayback = () => {
-    if (audioPlayerRef.current) {
-        audioPlayerRef.current.pause();
-        audioPlayerRef.current.currentTime = 0;
-        audioPlayerRef.current = null;
-        setIsPlaying(false);
-    }
-  };
-  
-  const resetState = () => {
-    stopPlayback();
-    setImageDataUri(null);
-    setIsCapturing(true);
-    setSpokenResponseUrl(null);
-    setTranscribedText(null);
-    setIsProcessing(false);
-  }
-
   const startCamera = useCallback(async () => {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode } });
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-        }
-      } catch (error) {
-        console.error('Error accessing camera:', error);
-        toast({
-          variant: 'destructive',
-          title: 'Camera Error',
-          description: 'Could not access the camera. Please check permissions.',
-        });
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode } });
+      setHasCameraPermission(true);
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
       }
+    } catch (error) {
+      console.error('Error accessing camera:', error);
+      setHasCameraPermission(false);
+      toast({
+        variant: 'destructive',
+        title: 'Camera Access Denied',
+        description: 'Please enable camera permissions in your browser settings.',
+      });
+    }
   }, [facingMode, toast]);
 
   useEffect(() => {
-    if (isCapturing) {
-      startCamera();
-    } else {
-        const stream = videoRef.current?.srcObject as MediaStream;
-        stream?.getTracks().forEach(track => track.stop());
-    }
-  }, [isCapturing, startCamera]);
-  
-  useEffect(() => {
-    // Start with the camera on
-    setIsCapturing(true);
-  }, []);
+    startCamera();
+    return () => {
+      const stream = videoRef.current?.srcObject as MediaStream;
+      stream?.getTracks().forEach(track => track.stop());
+    };
+  }, [startCamera]);
 
-  const handleCapture = () => {
+  const stopPlayback = () => {
+    if (audioPlayerRef.current) {
+      audioPlayerRef.current.pause();
+      audioPlayerRef.current.currentTime = 0;
+      setIsPlaying(false);
+      audioPlayerRef.current = null;
+    }
+  };
+
+  const handleCapture = async () => {
     if (!videoRef.current) return;
+    setIsCapturing(false);
+    setIsProcessing(true);
+    setAnalysisResult(null);
+    setSpokenResponseUrl(null);
+    stopPlayback();
+
     const canvas = document.createElement('canvas');
     canvas.width = videoRef.current.videoWidth;
     canvas.height = videoRef.current.videoHeight;
@@ -79,34 +73,33 @@ export default function Analyze() {
     context?.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
     const dataUri = canvas.toDataURL('image/jpeg');
     setImageDataUri(dataUri);
-    setIsCapturing(false);
-  };
-  
-  const handleVoiceAndSubmit = async (audioDataUri?: string) => {
-    if (!imageDataUri || isProcessing) return;
-
-    setIsProcessing(true);
-    setTranscribedText(null);
-    setSpokenResponseUrl(null);
-    stopPlayback();
 
     try {
-        const result = await getImageQuestionAnswer({ imageDataUri, audioDataUri, language: 'Urdu' });
-        
-        if(result.transcribedText) setTranscribedText(result.transcribedText);
-
-        const spokenResponse = await getSpokenResponse({ text: result.answer, voice: 'Female' });
+      const result = await getImageAnalysis({ imageDataUri: dataUri, language: 'English' });
+      setAnalysisResult(result);
+      if (result.description) {
+        const spokenResponse = await getSpokenResponse({ text: result.description, voice: 'Female' });
         setSpokenResponseUrl(spokenResponse.media);
-
+      }
     } catch (error) {
-        console.error('Analysis failed:', error);
-        toast({ variant: 'destructive', title: 'Error', description: 'Failed to analyze the image.' });
+      console.error('Image analysis failed:', error);
+      toast({ variant: 'destructive', title: 'Error', description: 'Failed to analyze the image.' });
     } finally {
-        setIsProcessing(false);
+      setIsProcessing(false);
     }
   };
 
-  const { isRecording, startRecording, stopRecording } = useAudioRecorder((audioDataUri) => handleVoiceAndSubmit(audioDataUri));
+  const handleRetake = () => {
+    setIsCapturing(true);
+    setImageDataUri(null);
+    setAnalysisResult(null);
+    setSpokenResponseUrl(null);
+    stopPlayback();
+  };
+
+  const switchCamera = () => {
+    setFacingMode(prev => (prev === 'user' ? 'environment' : 'user'));
+  };
   
   const handlePlaybackToggle = () => {
     if (isPlaying) {
@@ -123,72 +116,93 @@ export default function Analyze() {
     }
   };
 
-  const switchCamera = () => {
-    setFacingMode(prev => (prev === 'user' ? 'environment' : 'user'));
-    setIsCapturing(true);
-  };
-
-
   return (
-    <div className="flex flex-col h-full bg-black relative">
-      <header className="absolute top-0 left-0 w-full p-4 z-10 bg-gradient-to-b from-black/50 to-transparent flex justify-between items-center">
-        <h1 className="text-xl font-bold text-white">Analyze Vision</h1>
-         {!isCapturing && (
-            <Button onClick={resetState} variant="ghost" size="icon" className="text-white">
-                <X />
-            </Button>
-         )}
+    <div className="flex flex-col h-full bg-background">
+      <header className="p-4 border-b">
+        <h1 className="text-xl font-bold text-center">Analyze Image</h1>
       </header>
-
-      <div className="flex-grow w-full h-full flex items-center justify-center">
-        {isCapturing ? (
-            <video ref={videoRef} className="w-full h-full object-cover" autoPlay muted playsInline />
-        ) : imageDataUri && (
-            <Image src={imageDataUri} alt="Captured" layout="fill" objectFit="contain" />
-        )}
-      </div>
-
-       {transcribedText && (
-        <div className="absolute top-16 left-1/2 -translate-x-1/2 w-[90%] z-10">
-          <Alert>
-              <AlertDescription className="text-center font-urdu text-lg">{transcribedText}</AlertDescription>
-          </Alert>
-        </div>
-      )}
-
-      <div className="absolute bottom-0 left-0 w-full p-4 z-10 bg-gradient-to-t from-black/50 to-transparent flex justify-center items-center gap-4">
-        {isCapturing ? (
-          <>
-            <Button onClick={handleCapture} className="w-20 h-20 rounded-full border-4 border-black/50 bg-white hover:bg-gray-200" />
-            <Button onClick={switchCamera} variant="outline" size="icon" className="absolute right-4 bg-black/30 text-white border-white/50 rounded-full w-12 h-12">
-              <RefreshCcw />
-            </Button>
-          </>
-        ) : (
-          <>
-            {isProcessing ? (
-                <Loader2 className="w-16 h-16 animate-spin text-white" />
-            ) : spokenResponseUrl ? (
-                <Button onClick={handlePlaybackToggle} size="icon" className="w-20 h-20 rounded-full">
-                    {isPlaying ? <StopCircle size={32} /> : <Play size={32} />}
-                </Button>
+      <div className="flex-grow grid md:grid-cols-2 gap-4 p-4 overflow-hidden">
+        {/* Left Column: Input */}
+        <div className="flex flex-col gap-4 border rounded-lg p-4">
+          <div className="w-full aspect-video bg-muted rounded-md overflow-hidden relative flex items-center justify-center">
+            {hasCameraPermission === false ? (
+               <div className="text-center text-destructive">
+                <AlertCircle className="mx-auto h-12 w-12" />
+                <p className="mt-2 font-semibold">Camera Access Required</p>
+                <p className="text-sm">Please allow camera access in your browser.</p>
+              </div>
+            ) : isCapturing ? (
+              <video ref={videoRef} className="w-full h-full object-cover" autoPlay muted playsInline />
+            ) : imageDataUri ? (
+              <Image src={imageDataUri} alt="Captured" layout="fill" objectFit="contain" />
             ) : (
-                <>
-                <Button 
-                    size="icon" 
-                    className="w-20 h-20 rounded-full"
-                    variant={isRecording ? 'destructive' : 'default'}
-                    onClick={isRecording ? stopRecording : startRecording}
-                >
-                    <Mic size={32} />
-                </Button>
-                 <Button onClick={() => handleVoiceAndSubmit()} size="icon" className="w-14 h-14 rounded-full" variant="secondary">
-                    <Send />
-                </Button>
-                </>
+                <div className="text-center text-muted-foreground">
+                    <Video className="mx-auto h-12 w-12" />
+                    <p>Loading Camera...</p>
+                </div>
             )}
-          </>
-        )}
+          </div>
+          <div className="flex justify-center items-center gap-4">
+            {isCapturing ? (
+              <>
+                <Button onClick={handleCapture} className="w-20 h-20 rounded-full border-4 border-black/50 bg-white hover:bg-gray-200" disabled={!hasCameraPermission}/>
+                <Button onClick={switchCamera} variant="outline" size="icon" className="absolute right-8" disabled={!hasCameraPermission}>
+                  <RefreshCcw />
+                </Button>
+              </>
+            ) : (
+              <Button onClick={handleRetake} variant="outline">
+                <Camera className="mr-2 h-4 w-4" />
+                Retake Photo
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {/* Right Column: Output */}
+        <div className="flex flex-col border rounded-lg overflow-hidden">
+          {isProcessing ? (
+             <div className="flex-grow flex items-center justify-center">
+                <Loader2 className="w-12 h-12 animate-spin text-primary" />
+             </div>
+          ) : analysisResult ? (
+            <div className="flex-grow p-4 space-y-4 overflow-y-auto">
+                <Card>
+                    <CardHeader>
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <Bot className="w-6 h-6 text-primary" />
+                                <CardTitle>Description</CardTitle>
+                            </div>
+                            <Button onClick={handlePlaybackToggle} size="icon" variant="outline" disabled={!spokenResponseUrl}>
+                                {isPlaying ? <StopCircle/> : <Play />}
+                            </Button>
+                        </div>
+                    </CardHeader>
+                    <CardContent>
+                        <p>{analysisResult.description}</p>
+                    </CardContent>
+                </Card>
+                {analysisResult.extractedText && (
+                    <Card>
+                        <CardHeader>
+                            <div className="flex items-center gap-2">
+                                <Type className="w-6 h-6 text-primary" />
+                                <CardTitle>Extracted Text</CardTitle>
+                            </div>
+                        </CardHeader>
+                        <CardContent>
+                            <p className="font-mono text-sm whitespace-pre-wrap">{analysisResult.extractedText}</p>
+                        </CardContent>
+                    </Card>
+                )}
+            </div>
+          ) : (
+            <div className="flex-grow flex items-center justify-center text-center text-muted-foreground p-8">
+                <p>Capture a photo to see the AI analysis here.</p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
