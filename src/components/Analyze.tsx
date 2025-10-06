@@ -78,7 +78,7 @@ export default function Analyze() {
       const result = await getImageAnalysis({ imageDataUri: dataUri, language: 'Urdu' });
       setAnalysisResult(result);
       if (result.description) {
-        const spokenResponse = await getSpokenResponse({ text: result.description, voice: 'Female' });
+        const spokenResponse = await getSpokenResponse({ text: result.description, voice: 'Male' });
         setSpokenResponseUrl(spokenResponse.media);
       }
     } catch (error) {
