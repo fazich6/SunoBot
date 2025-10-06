@@ -7,6 +7,7 @@ import { User, Bot, Play, Share2, Bookmark, StopCircle, Loader2 } from 'lucide-r
 import { Button } from './ui/button';
 import { Avatar, AvatarFallback } from './ui/avatar';
 import { useToast } from "@/hooks/use-toast";
+import type { ExtractedReminderFromChat } from '@/ai/schemas';
 
 interface AssistantMessageProps {
   message: Message;

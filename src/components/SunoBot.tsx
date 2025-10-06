@@ -3,7 +3,8 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { getAIAnswer, getSpokenResponse, getTranscription, getTopicSuggestions } from '@/app/actions';
 import { useAudioRecorder } from '@/lib/hooks/use-audio-recorder';
-import { SunoBotLogo, ThinkingIcon, Volume2, Sparkles } from '@/components/icons';
+import { SunoBotLogo, ThinkingIcon, Volume2 } from '@/components/icons';
+import { Sparkles } from 'lucide-react';
 import HelperPacks from '@/components/HelperPacks';
 import ConversationView from '@/components/ConversationView';
 import MicrophoneButton from '@/components/MicrophoneButton';
@@ -15,7 +16,6 @@ import { cn } from '@/lib/utils';
 import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection, addDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase';
 import { doc, collection, query, orderBy } from 'firebase/firestore';
 import type { ExtractedReminderFromChat } from '@/ai/schemas';
-import ReminderCard from './ReminderCard';
 
 export type Message = {
   id: string;
@@ -117,34 +117,30 @@ export default function SunoBot() {
     setStatus('thinking');
     setSuggestedTopics([]);
     setShowFavorites(false);
-
-    // Save user message immediately
-    await saveMessage({ role: 'user', text: query });
   
-    // Create history for AI, including the new user message.
-    // We use the local `conversation` state which updates from Firestore,
-    // and append the new user query to it for the AI call.
-    const currentMessages = conversation || [];
-    const updatedHistoryForAI = [...currentMessages.map(m => ({role: m.role, text: m.text})), { role: 'user' as const, text: query }];
+    const userMessageToSave: Omit<Message, 'id'> = { role: 'user', text: query, createdAt: new Date().toISOString() };
+    await saveMessage(userMessageToSave);
+
+    const currentConversationForAI = [...(conversation || []), { ...userMessageToSave, id: '' }];
   
     try {
         const currentDate = new Date();
-        currentDate.setFullYear(2025);
-        currentDate.setMonth(9); // October is month 9 (0-indexed)
-
         const aiResponse = await getAIAnswer({
             question: query,
-            conversationHistory: updatedHistoryForAI.slice(-6), // Send last 6 messages for context
+            conversationHistory: currentConversationForAI.map(m => ({role: m.role, text: m.text})).slice(-6), // Send last 6 messages for context
             language,
             currentDate: currentDate.toDateString(),
         });
-  
-        // Save the full AI response
+        
         const aiMessageToSave: Omit<Message, 'id' | 'createdAt'> = {
             role: 'assistant',
             text: aiResponse.answer,
-            ...(aiResponse.extractedReminder && { extractedReminder: aiResponse.extractedReminder })
         };
+        // This check prevents saving an undefined field to Firestore
+        if (aiResponse.extractedReminder) {
+            aiMessageToSave.extractedReminder = aiResponse.extractedReminder;
+        }
+        
         await saveMessage(aiMessageToSave);
 
         if (settings?.enableTopicSuggestions) {
@@ -272,16 +268,6 @@ export default function SunoBot() {
         setDocumentNonBlocking(userProfileRef, { bookmarkedMessageIds: Array.from(newSet) }, { merge: true });
     }
   };
-  
-  const handleSaveReminder = (reminder: ExtractedReminderFromChat) => {
-    if (!chatHistoryColRef) return;
-    const remindersColRef = collection(firestore, 'users', user.uid, 'reminders');
-    addDocumentNonBlocking(remindersColRef, { ...reminder, createdAt: new Date().toISOString() });
-    toast({
-        title: "Reminder Saved!",
-        description: `Your reminder for ${reminder.medicineName} has been added.`
-    })
-  }
 
   const getStatusMessage = () => {
     switch (status) {
@@ -314,60 +300,58 @@ export default function SunoBot() {
         </div>
       </header>
       <div ref={scrollRef} className="flex-grow overflow-y-auto p-4">
-        <div className="pb-24">
-            { (messagesToDisplay || []).length === 0 ? (
-              showFavorites ? (
-                 <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground p-8">
-                    <Bookmark size={48} className="mb-4" />
-                    <h2 className="text-xl font-semibold text-foreground">No Bookmarked Answers</h2>
-                    <p className="mt-2">Tap the bookmark icon on any answer to save it here.</p>
-                </div>
-              ) : (
-                <HelperPacks onPackClick={handleHelperPackClick} />
-              )
+          { (messagesToDisplay || []).length === 0 ? (
+            showFavorites ? (
+               <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground p-8">
+                  <Bookmark size={48} className="mb-4" />
+                  <h2 className="text-xl font-semibold text-foreground">No Bookmarked Answers</h2>
+                  <p className="mt-2">Tap the bookmark icon on any answer to save it here.</p>
+              </div>
             ) : (
-              <ConversationView 
-                 conversation={messagesToDisplay || []}
-                 bookmarkedIds={bookmarkedIds} 
-                 onBookmark={handleBookmarkToggle}
-                 onPlaybackToggle={handlePlaybackToggle}
-                 currentlyPlayingId={currentlyPlayingId}
-                 language={language}
-                 onSaveReminder={handleSaveReminder}
-               />
+              <HelperPacks onPackClick={handleHelperPackClick} />
+            )
+          ) : (
+            <ConversationView 
+               conversation={messagesToDisplay || []}
+               bookmarkedIds={bookmarkedIds} 
+               onBookmark={handleBookmarkToggle}
+               onPlaybackToggle={handlePlaybackToggle}
+               currentlyPlayingId={currentlyPlayingId}
+               language={language}
+             />
+          )}
+        <footer className="flex flex-col items-center justify-center space-y-2 pt-4">
+            {suggestedTopics.length > 0 && !showFavorites && (
+                <div className="w-full">
+                <div className="flex items-center justify-center gap-2 mb-2">
+                    <Sparkles className="w-4 h-4 text-green-500" />
+                    <h3 className="text-sm font-semibold">Suggested For You</h3>
+                </div>
+                <div className="flex flex-wrap justify-center gap-2" dir="rtl">
+                    {suggestedTopics.map((topic, index) => (
+                    <Badge 
+                        key={index} 
+                        variant="outline" 
+                        className="cursor-pointer font-urdu text-sm"
+                        onClick={() => processQuery(topic)}
+                    >
+                        {topic}
+                    </Badge>
+                    ))}
+                </div>
+                </div>
             )}
-        </div>
+            <MicrophoneButton
+                status={status}
+                onMouseDown={handleMicPress}
+                onMouseUp={handleMicRelease}
+                onTouchStart={handleMicPress}
+                onTouchEnd={handleMicRelease}
+                className="my-4"
+            />
+            <p className="text-sm text-muted-foreground h-4">{getStatusMessage()}</p>
+        </footer>
       </div>
-      <footer className="absolute bottom-16 left-0 right-0 p-4 flex flex-col items-center justify-center space-y-2 bg-background/80 backdrop-blur-sm border-t">
-        {suggestedTopics.length > 0 && !showFavorites && (
-            <div className="w-full">
-            <div className="flex items-center justify-center gap-2 mb-2">
-                <Sparkles className="w-4 h-4 text-green-500" />
-                <h3 className="text-sm font-semibold">Suggested For You</h3>
-            </div>
-            <div className="flex flex-wrap justify-center gap-2" dir="rtl">
-                {suggestedTopics.map((topic, index) => (
-                <Badge 
-                    key={index} 
-                    variant="outline" 
-                    className="cursor-pointer font-urdu text-sm"
-                    onClick={() => processQuery(topic)}
-                >
-                    {topic}
-                </Badge>
-                ))}
-            </div>
-            </div>
-        )}
-        <MicrophoneButton
-            status={status}
-            onMouseDown={handleMicPress}
-            onMouseUp={handleMicRelease}
-            onTouchStart={handleMicPress}
-            onTouchEnd={handleMicRelease}
-        />
-        <p className="text-sm text-muted-foreground h-4">{getStatusMessage()}</p>
-      </footer>
     </div>
   );
 }
