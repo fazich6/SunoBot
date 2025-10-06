@@ -24,18 +24,21 @@ const speakResponsesInUrduEnglishMixFlow = ai.defineFlow(
     inputSchema: SpeakResponsesInUrduEnglishMixInputSchema,
     outputSchema: SpeakResponsesInUrduEnglishMixOutputSchema,
   },
-  async (query) => {
+  async (input) => {
+    // Choose voice based on input, default to Male
+    const voiceName = input.voice === 'Female' ? 'Achernar' : 'Algenib';
+
     const { media } = await ai.generate({
       model: 'googleai/gemini-2.5-flash-preview-tts',
       config: {
         responseModalities: ['AUDIO'],
         speechConfig: {
           voiceConfig: {
-            prebuiltVoiceConfig: { voiceName: 'Algenib' },
+            prebuiltVoiceConfig: { voiceName },
           },
         },
       },
-      prompt: query.text,
+      prompt: input.text,
     });
     if (!media) {
       throw new Error('no media returned');

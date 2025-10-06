@@ -51,6 +51,7 @@ export default function SunoBot() {
   const settingsRef = useMemoFirebase(() => user ? doc(firestore, 'settings', user.uid) : null, [user, firestore]);
   const { data: settings } = useDoc<Settings>(settingsRef);
   const language = settings?.language || 'English';
+  const voicePreference = settings?.voicePreference || 'Male';
 
   const userProfileRef = useMemoFirebase(() => user ? doc(firestore, 'users', user.uid) : null, [user, firestore]);
   const { data: userProfile } = useDoc<UserProfile>(userProfileRef);
@@ -91,7 +92,6 @@ export default function SunoBot() {
     try {
       const result = await getTopicSuggestions({
         userHistory: currentConversation.map(m => m.text),
-        currentInterests: [],
       });
       setSuggestedTopics(result.suggestedTopics.slice(0, 3)); // Limit to 3 suggestions
     } catch (error) {
@@ -199,7 +199,7 @@ export default function SunoBot() {
       setStatus('speaking');
       setCurrentlyPlayingId(messageId);
       try {
-        const { media } = await getSpokenResponse({ text: message.text });
+        const { media } = await getSpokenResponse({ text: message.text, voice: voicePreference });
         if (media) {
           const audio = new Audio(media);
           audioPlayerRef.current = audio;
@@ -316,28 +316,28 @@ export default function SunoBot() {
                />
             )}
         </div>
-        <footer className="p-4 flex flex-col items-center justify-center space-y-2 border-t">
-            {suggestedTopics.length > 0 && (
-            <div className="flex flex-wrap justify-center gap-2 mb-2" dir="rtl">
-                {suggestedTopics.map((topic, index) => (
-                <Badge 
-                    key={index} 
-                    variant="outline" 
-                    className="cursor-pointer font-urdu text-base"
-                    onClick={() => processQuery(topic)}
-                >
-                    {topic}
-                </Badge>
-                ))}
-            </div>
-            )}
-            <MicrophoneButton
-            status={status}
-            onClick={handleMicClick}
-            />
-            <p className="text-sm text-muted-foreground h-4">{getStatusMessage()}</p>
-        </footer>
       </div>
+      <footer className="p-4 flex flex-col items-center justify-center space-y-2 border-t">
+          <MicrophoneButton
+          status={status}
+          onClick={handleMicClick}
+          />
+          <p className="text-sm text-muted-foreground h-4">{getStatusMessage()}</p>
+          {suggestedTopics.length > 0 && (
+          <div className="flex flex-wrap justify-center gap-2 mt-2" dir="rtl">
+              {suggestedTopics.map((topic, index) => (
+              <Badge 
+                  key={index} 
+                  variant="outline" 
+                  className="cursor-pointer font-urdu text-base"
+                  onClick={() => processQuery(topic)}
+              >
+                  {topic}
+              </Badge>
+              ))}
+          </div>
+          )}
+      </footer>
     </div>
   );
 }
