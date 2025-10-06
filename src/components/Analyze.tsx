@@ -1,157 +1,194 @@
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
-import { RefreshCcw, Loader2, Play, Square, CameraOff } from 'lucide-react';
+import { Camera, RefreshCcw, Send, Loader2, Mic, Play, StopCircle, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { getImageAnalysis, getSpokenResponse } from '@/app/actions';
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { useAudioRecorder } from '@/lib/hooks/use-audio-recorder';
+import { getImageQuestionAnswer, getSpokenResponse } from '@/app/actions';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 export default function Analyze() {
+  const [imageDataUri, setImageDataUri] = useState<string | null>(null);
+  const [isCapturing, setIsCapturing] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [isSpeaking, setIsSpeaking] = useState(false);
-  const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
   const [facingMode, setFacingMode] = useState<'user' | 'environment'>('environment');
-  const [isLive, setIsLive] = useState(false);
-
+  const [spokenResponseUrl, setSpokenResponseUrl] = useState<string | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [transcribedText, setTranscribedText] = useState<string | null>(null);
+  
   const videoRef = useRef<HTMLVideoElement>(null);
   const audioPlayerRef = useRef<HTMLAudioElement | null>(null);
-  const analysisIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const { toast } = useToast();
 
-  const stopAllActivity = useCallback(() => {
-    if (analysisIntervalRef.current) {
-      clearInterval(analysisIntervalRef.current);
-      analysisIntervalRef.current = null;
-    }
+  const stopPlayback = () => {
     if (audioPlayerRef.current) {
-      audioPlayerRef.current.pause();
-      audioPlayerRef.current = null;
+        audioPlayerRef.current.pause();
+        audioPlayerRef.current.currentTime = 0;
+        audioPlayerRef.current = null;
+        setIsPlaying(false);
     }
-    setIsLive(false);
+  };
+  
+  const resetState = () => {
+    stopPlayback();
+    setImageDataUri(null);
+    setIsCapturing(true);
+    setSpokenResponseUrl(null);
+    setTranscribedText(null);
     setIsProcessing(false);
-    setIsSpeaking(false);
-  }, []);
+  }
 
-  useEffect(() => {
-    let stream: MediaStream | null = null;
-    const getCameraPermission = async () => {
+  const startCamera = useCallback(async () => {
       try {
-        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode } });
-        setHasCameraPermission(true);
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode } });
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
         }
       } catch (error) {
         console.error('Error accessing camera:', error);
-        setHasCameraPermission(false);
         toast({
           variant: 'destructive',
-          title: 'Camera Access Denied',
-          description: 'Please enable camera permissions in your browser settings to use this feature.',
+          title: 'Camera Error',
+          description: 'Could not access the camera. Please check permissions.',
         });
       }
-    };
+  }, [facingMode, toast]);
 
-    getCameraPermission();
+  useEffect(() => {
+    if (isCapturing) {
+      startCamera();
+    } else {
+        const stream = videoRef.current?.srcObject as MediaStream;
+        stream?.getTracks().forEach(track => track.stop());
+    }
+  }, [isCapturing, startCamera]);
+  
+  useEffect(() => {
+    // Start with the camera on
+    setIsCapturing(true);
+  }, []);
 
-    return () => {
-      stopAllActivity();
-      stream?.getTracks().forEach(track => track.stop());
-    };
-  }, [facingMode, toast, stopAllActivity]);
-
-
-  const handleAnalysis = useCallback(async () => {
-    if (!videoRef.current || isProcessing || !isLive) return;
-
-    setIsProcessing(true);
-
+  const handleCapture = () => {
+    if (!videoRef.current) return;
     const canvas = document.createElement('canvas');
     canvas.width = videoRef.current.videoWidth;
     canvas.height = videoRef.current.videoHeight;
     const context = canvas.getContext('2d');
-    if (!context) {
-        setIsProcessing(false);
-        return;
-    };
-    context.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
+    context?.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
     const dataUri = canvas.toDataURL('image/jpeg');
+    setImageDataUri(dataUri);
+    setIsCapturing(false);
+  };
+  
+  const handleVoiceAndSubmit = async (audioDataUri?: string) => {
+    if (!imageDataUri || isProcessing) return;
+
+    setIsProcessing(true);
+    setTranscribedText(null);
+    setSpokenResponseUrl(null);
+    stopPlayback();
 
     try {
-      const { description } = await getImageAnalysis({ imageDataUri: dataUri, language: 'Urdu' });
-      
-      if (description && isLive) { // Check if still live before speaking
-        const { media } = await getSpokenResponse({ text: description });
-        if (media && isLive) { // Check again
-          setIsSpeaking(true);
-          const audio = new Audio(media);
-          audioPlayerRef.current = audio;
-          audio.play();
-          audio.onended = () => {
-            setIsSpeaking(false);
-            audioPlayerRef.current = null;
-          };
-        }
-      }
+        const result = await getImageQuestionAnswer({ imageDataUri, audioDataUri, language: 'Urdu' });
+        
+        if(result.transcribedText) setTranscribedText(result.transcribedText);
+
+        const spokenResponse = await getSpokenResponse({ text: result.answer, voice: 'Female' });
+        setSpokenResponseUrl(spokenResponse.media);
+
     } catch (error) {
-      console.error('Analysis or speech failed:', error);
-       toast({ variant: 'destructive', title: 'Error', description: 'Could not process the analysis or speech.' });
+        console.error('Analysis failed:', error);
+        toast({ variant: 'destructive', title: 'Error', description: 'Failed to analyze the image.' });
     } finally {
         setIsProcessing(false);
     }
-  }, [isProcessing, toast, isLive]);
-  
-  const switchCamera = () => {
-    if (isLive) return;
-    setFacingMode(prev => (prev === 'user' ? 'environment' : 'user'));
   };
 
-  const toggleLiveAnalysis = () => {
-    if (isLive) {
-      stopAllActivity();
-    } else {
-      setIsLive(true);
-      // Analyze immediately, then set interval
-      handleAnalysis(); 
-      analysisIntervalRef.current = setInterval(handleAnalysis, 7000); 
+  const { isRecording, startRecording, stopRecording } = useAudioRecorder((audioDataUri) => handleVoiceAndSubmit(audioDataUri));
+  
+  const handlePlaybackToggle = () => {
+    if (isPlaying) {
+      stopPlayback();
+    } else if (spokenResponseUrl) {
+      const audio = new Audio(spokenResponseUrl);
+      audioPlayerRef.current = audio;
+      setIsPlaying(true);
+      audio.play();
+      audio.onended = () => {
+        setIsPlaying(false);
+        audioPlayerRef.current = null;
+      };
     }
   };
 
+  const switchCamera = () => {
+    setFacingMode(prev => (prev === 'user' ? 'environment' : 'user'));
+    setIsCapturing(true);
+  };
+
+
   return (
     <div className="flex flex-col h-full bg-black relative">
-       <header className="absolute top-0 left-0 w-full p-4 z-10 bg-gradient-to-b from-black/50 to-transparent">
-        <h1 className="text-xl font-bold text-center text-white">Live Vision</h1>
+      <header className="absolute top-0 left-0 w-full p-4 z-10 bg-gradient-to-b from-black/50 to-transparent flex justify-between items-center">
+        <h1 className="text-xl font-bold text-white">Analyze Vision</h1>
+         {!isCapturing && (
+            <Button onClick={resetState} variant="ghost" size="icon" className="text-white">
+                <X />
+            </Button>
+         )}
       </header>
-      
+
       <div className="flex-grow w-full h-full flex items-center justify-center">
-        {hasCameraPermission === false ? (
-             <div className="text-center text-white p-4">
-                <CameraOff size={48} className="mx-auto mb-4" />
-                <Alert variant="destructive">
-                    <AlertTitle>Camera Access Required</AlertTitle>
-                    <AlertDescription>Please allow camera access in your browser settings.</AlertDescription>
-                </Alert>
-             </div>
-        ) : (
+        {isCapturing ? (
             <video ref={videoRef} className="w-full h-full object-cover" autoPlay muted playsInline />
+        ) : imageDataUri && (
+            <Image src={imageDataUri} alt="Captured" layout="fill" objectFit="contain" />
         )}
       </div>
 
-       <div className="absolute bottom-0 left-0 w-full p-4 z-10 bg-gradient-to-t from-black/50 to-transparent flex justify-center items-center gap-4">
-          <Button 
-            onClick={toggleLiveAnalysis} 
-            className="w-20 h-20 rounded-full" 
-            variant={isLive ? 'destructive' : 'default'}
-            disabled={hasCameraPermission === false}
-          >
-              {isProcessing && !isSpeaking ? <Loader2 className="animate-spin" size={32}/> : isLive ? <Square size={32} /> : <Play size={32} />}
-          </Button>
-          {!isLive && (
-             <Button onClick={switchCamera} variant="outline" size="icon" className="bg-black/30 text-white border-white/50 rounded-full w-12 h-12" disabled={hasCameraPermission === false}>
-                <RefreshCcw />
-              </Button>
-          )}
+       {transcribedText && (
+        <div className="absolute top-16 left-1/2 -translate-x-1/2 w-[90%] z-10">
+          <Alert>
+              <AlertDescription className="text-center font-urdu text-lg">{transcribedText}</AlertDescription>
+          </Alert>
+        </div>
+      )}
+
+      <div className="absolute bottom-0 left-0 w-full p-4 z-10 bg-gradient-to-t from-black/50 to-transparent flex justify-center items-center gap-4">
+        {isCapturing ? (
+          <>
+            <Button onClick={handleCapture} className="w-20 h-20 rounded-full border-4 border-black/50 bg-white hover:bg-gray-200" />
+            <Button onClick={switchCamera} variant="outline" size="icon" className="absolute right-4 bg-black/30 text-white border-white/50 rounded-full w-12 h-12">
+              <RefreshCcw />
+            </Button>
+          </>
+        ) : (
+          <>
+            {isProcessing ? (
+                <Loader2 className="w-16 h-16 animate-spin text-white" />
+            ) : spokenResponseUrl ? (
+                <Button onClick={handlePlaybackToggle} size="icon" className="w-20 h-20 rounded-full">
+                    {isPlaying ? <StopCircle size={32} /> : <Play size={32} />}
+                </Button>
+            ) : (
+                <>
+                <Button 
+                    size="icon" 
+                    className="w-20 h-20 rounded-full"
+                    variant={isRecording ? 'destructive' : 'default'}
+                    onClick={isRecording ? stopRecording : startRecording}
+                >
+                    <Mic size={32} />
+                </Button>
+                 <Button onClick={() => handleVoiceAndSubmit()} size="icon" className="w-14 h-14 rounded-full" variant="secondary">
+                    <Send />
+                </Button>
+                </>
+            )}
+          </>
+        )}
       </div>
     </div>
   );

@@ -13,8 +13,6 @@ import {
   AnswerImageQuestionOutputSchema,
   type AnswerImageQuestionOutput,
 } from '@/ai/schemas';
-import { z } from 'zod';
-
 
 export async function answerImageQuestion(input: AnswerImageQuestionInput): Promise<AnswerImageQuestionOutput> {
   return answerImageQuestionFlow(input);
@@ -25,8 +23,8 @@ const answerImageQuestionPrompt = ai.definePrompt({
   input: {schema: AnswerImageQuestionInputSchema},
   output: {schema: AnswerImageQuestionOutputSchema},
   prompt: `You are a visual assistant. Your task is to do two things:
-1. If audio is provided, transcribe the user's spoken question about the image. If text is provided, use that as the question.
-2. Provide a helpful answer to the question based on the content of the image, in the specified language.
+1. If audio is provided, transcribe the user's spoken question about the image. If text is provided, use that as the question. If neither is provided, simply describe the image.
+2. Provide a helpful answer to the question based on the content of the image, or a description, in the specified language.
 
 When the user requests Urdu, you MUST reply in the standard Urdu (Nastaliq) script.
 
@@ -34,7 +32,7 @@ Current Language: {{{language}}}
 Image: {{media url=imageDataUri}}
 {{#if audioDataUri}}
 Audio Question: {{media url=audioDataUri}}
-{{else}}
+{{else if question}}
 Text Question: {{{question}}}
 {{/if}}
 `,
