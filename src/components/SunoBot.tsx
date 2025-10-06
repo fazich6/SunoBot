@@ -45,6 +45,8 @@ export default function SunoBot() {
   const { toast } = useToast();
   const { user } = useUser();
   const firestore = useFirestore();
+  const scrollRef = useRef<HTMLDivElement>(null);
+
 
   const settingsRef = useMemoFirebase(() => user ? doc(firestore, 'settings', user.uid) : null, [user, firestore]);
   const { data: settings } = useDoc<Settings>(settingsRef);
@@ -72,16 +74,23 @@ export default function SunoBot() {
     }
   }, [userProfile]);
 
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [conversation, suggestedTopics]);
+
 
   const fetchSuggestions = useCallback(async () => {
-    if (!conversation || conversation.length === 0 || !settings?.enableTopicSuggestions) {
+    const currentConversation = conversation || [];
+    if (currentConversation.length === 0 || !settings?.enableTopicSuggestions) {
       setSuggestedTopics([]);
       return;
     };
 
     try {
       const result = await getTopicSuggestions({
-        userHistory: conversation.map(m => m.text),
+        userHistory: currentConversation.map(m => m.text),
         currentInterests: [],
       });
       setSuggestedTopics(result.suggestedTopics.slice(0, 3)); // Limit to 3 suggestions
@@ -144,15 +153,17 @@ export default function SunoBot() {
       setShowFavorites(false);
       
       const currentConversation = conversation || [];
-      const history = currentConversation.length > 0 ? currentConversation : [{ role: 'user', text: query }];
+      const history = currentConversation.length > 0 ? currentConversation.slice(-6) : [{ role: 'user', text: query }];
 
       const { answer } = await getAIAnswer({
         question: query,
-        conversationHistory: history.slice(-6).map(m => ({role: m.role, text: m.text})),
+        conversationHistory: history.map(m => ({role: m.role, text: m.text})),
         language
       });
       
       await saveMessage({ role: 'assistant', text: answer });
+      
+      setStatus('idle');
       
       if (settings?.enableTopicSuggestions) {
         fetchSuggestions();
@@ -165,8 +176,7 @@ export default function SunoBot() {
         description: "Something went wrong while getting your answer. Please try again.",
         variant: "destructive",
       });
-    } finally {
-        setStatus('idle');
+       setStatus('idle');
     }
   };
 
@@ -269,7 +279,7 @@ export default function SunoBot() {
 
   return (
     <div className="flex flex-col h-full bg-background">
-      <header className="flex justify-between items-center p-4">
+      <header className="flex justify-between items-center p-4 border-b">
         <SunoBotLogo className="h-8 w-auto" />
         <div className="flex items-center gap-2">
           {status === 'thinking' && <ThinkingIcon className="animate-spin text-primary" />}
@@ -283,30 +293,32 @@ export default function SunoBot() {
         </div>
       </header>
 
-      <div className="flex-grow overflow-hidden px-4 pb-4">
-        { (messagesToDisplay || []).length === 0 ? (
-          showFavorites ? (
-             <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground p-8">
-                <Bookmark size={48} className="mb-4" />
-                <h2 className="text-xl font-semibold text-foreground">No Bookmarked Answers</h2>
-                <p className="mt-2">Tap the bookmark icon on any answer to save it here.</p>
-            </div>
-          ) : (
-            <HelperPacks onPackClick={handleHelperPackClick} />
-          )
-        ) : (
-          <ConversationView 
-             conversation={messagesToDisplay || []}
-             bookmarkedIds={bookmarkedIds} 
-             onBookmark={handleBookmarkToggle}
-             onPlaybackToggle={handlePlaybackToggle}
-             currentlyPlayingId={currentlyPlayingId}
-             language={language}
-           />
-        )}
+      <div ref={scrollRef} className="flex-grow overflow-y-auto">
+        <div className="px-4 pt-4 pb-28">
+            { (messagesToDisplay || []).length === 0 ? (
+              showFavorites ? (
+                 <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground p-8">
+                    <Bookmark size={48} className="mb-4" />
+                    <h2 className="text-xl font-semibold text-foreground">No Bookmarked Answers</h2>
+                    <p className="mt-2">Tap the bookmark icon on any answer to save it here.</p>
+                </div>
+              ) : (
+                <HelperPacks onPackClick={handleHelperPackClick} />
+              )
+            ) : (
+              <ConversationView 
+                 conversation={messagesToDisplay || []}
+                 bookmarkedIds={bookmarkedIds} 
+                 onBookmark={handleBookmarkToggle}
+                 onPlaybackToggle={handlePlaybackToggle}
+                 currentlyPlayingId={currentlyPlayingId}
+                 language={language}
+               />
+            )}
+        </div>
       </div>
         
-      <footer className="p-4 flex flex-col items-center justify-center space-y-2 border-t border-border/50 bg-background/50 backdrop-blur-sm">
+      <footer className="absolute bottom-0 left-0 right-0 p-4 flex flex-col items-center justify-center space-y-2 border-t border-border/50 bg-background/80 backdrop-blur-sm">
         {suggestedTopics.length > 0 && (
           <div className="flex flex-wrap justify-center gap-2 mb-2" dir="rtl">
             {suggestedTopics.map((topic, index) => (

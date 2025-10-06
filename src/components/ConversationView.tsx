@@ -103,16 +103,9 @@ const UserMessage = ({ message }: { message: Message }) => {
 };
 
 export default function ConversationView({ conversation, bookmarkedIds, onBookmark, onPlaybackToggle, currentlyPlayingId, language }: { conversation: Message[]; bookmarkedIds: Set<string>; onBookmark: (id: string) => void; onPlaybackToggle: (messageId: string) => void; currentlyPlayingId: string | null; language: 'English' | 'Urdu'; }) {
-  const scrollRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
-  }, [conversation]);
 
   return (
-    <div ref={scrollRef} className="space-y-6 overflow-y-auto h-full">
+    <div className="space-y-6">
       {conversation.map((message) => (
         <div key={message.id}>
           {message.role === 'assistant' ? (
