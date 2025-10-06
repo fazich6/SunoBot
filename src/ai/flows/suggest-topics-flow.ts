@@ -22,24 +22,17 @@ const suggestTopicsPrompt = ai.definePrompt({
   name: 'suggestTopicsPrompt',
   input: {schema: SuggestTopicsInputSchema},
   output: {schema: SuggestTopicsOutputSchema},
-  prompt: `You are an AI assistant designed to suggest relevant topics and helper packs to users based on their past interactions and current interests.
+  prompt: `You are an AI assistant designed to suggest relevant follow-up topics to users based on their conversation history.
 
-All of your suggestions MUST be in the standard Urdu (Nastaliq) script. Do NOT use Roman Urdu.
+Your suggestions MUST be in the standard Urdu (Nastaliq) script. Do NOT use Roman Urdu.
 
-User History:
+Conversation History:
 {{#each userHistory}}
 - {{this}}
 {{/each}}
 
-Current Interests:
-{{#each currentInterests}}
-- {{this}}
-{{/each}}
-
-Based on this information, suggest relevant topics and helper packs that the user might find useful. Format your response as a JSON object with "suggestedTopics" and "suggestedHelperPacks" keys, each containing an array of strings in Urdu.
-
-Ensure the suggested topics and helper packs are tailored to the user's needs and preferences, and are likely to be of interest to them. Topics should be related to daily life, recipes, health tips, or kids stories, as appropriate for SunoBot.
-Helper packs should also align with these themes. Ensure that you return at least 3 topics, and 2 helper packs.`,
+Based on this information, suggest three relevant and interesting topics the user might want to ask about next. The topics should be short, engaging, and directly related to the last few messages. Format your response as a JSON object with a "suggestedTopics" key containing an array of three strings in Urdu.
+`,
 });
 
 const suggestTopicsFlow = ai.defineFlow(

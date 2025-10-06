@@ -104,7 +104,6 @@ export type SuggestTopicsInput = z.infer<typeof SuggestTopicsInputSchema>;
 
 export const SuggestTopicsOutputSchema = z.object({
     suggestedTopics: z.array(z.string()).describe('An array of suggested topic strings in Urdu.'),
-    suggestedHelperPacks: z.array(z.string()).describe('An array of suggested helper pack strings in Urdu.'),
 });
 export type SuggestTopicsOutput = z.infer<typeof SuggestTopicsOutputSchema>;
 
