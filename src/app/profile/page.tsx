@@ -10,7 +10,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { useUser, useFirestore, useDoc, useMemoFirebase, setDocumentNonBlocking } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, LogOut, Settings } from 'lucide-react';
+import { Loader2, LogOut } from 'lucide-react';
 import { getAuth } from 'firebase/auth';
 import Link from 'next/link';
 
@@ -89,11 +89,6 @@ export default function ProfilePage() {
       <header className="p-4 border-b flex justify-between items-center">
         <h1 className="text-xl font-bold text-center">Profile</h1>
         <div>
-            <Link href="/settings">
-                <Button variant="ghost" size="icon">
-                    <Settings />
-                </Button>
-            </Link>
             <Button variant="ghost" size="icon" onClick={handleLogout}>
                 <LogOut />
             </Button>
