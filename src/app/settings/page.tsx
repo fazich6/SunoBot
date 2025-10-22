@@ -28,25 +28,6 @@ const settingsSchema = z.object({
 
 type SettingsFormValues = z.infer<typeof settingsSchema>;
 
-function SectionCard({ icon: Icon, title, description, children }: { icon: React.ElementType, title: string, description: string, children: React.ReactNode }) {
-    return (
-        <Card>
-            <CardHeader>
-                <div className='flex items-start gap-4'>
-                    <Icon className="w-6 h-6 text-primary mt-1"/>
-                    <div>
-                        <CardTitle className="text-lg">{title}</CardTitle>
-                        <CardDescription>{description}</CardDescription>
-                    </div>
-                </div>
-            </CardHeader>
-            <CardContent>
-                {children}
-            </CardContent>
-        </Card>
-    );
-}
-
 export default function SettingsPage() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
@@ -146,134 +127,162 @@ export default function SettingsPage() {
       <div className="flex-grow p-4 overflow-y-auto space-y-4">
         <Form {...form}>
           <form className="space-y-6">
-            <SectionCard 
-                icon={Moon} 
-                title="Appearance" 
-                description="Customize the look and feel of the app."
-            >
-                <FormField
-                    control={form.control}
-                    name="theme"
-                    render={({ field }) => (
-                        <FormItem className='flex justify-between items-center'>
-                            <FormLabel>Theme</FormLabel>
-                            <FormControl>
-                                <Select onValueChange={field.onChange} value={field.value}>
-                                    <SelectTrigger className="w-[120px]">
-                                        <SelectValue placeholder="Select theme" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="light">Light</SelectItem>
-                                        <SelectItem value="dark">Dark</SelectItem>
-                                        <SelectItem value="system">System</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </FormControl>
-                        </FormItem>
-                    )}
-                />
-            </SectionCard>
-
-            <SectionCard 
-                icon={Mic} 
-                title="Voice & Language" 
-                description="Set your preferred language and voice for interactions."
-            >
-                <div className="space-y-4">
-                     <FormField
-                        control={form.control}
-                        name="language"
-                        render={({ field }) => (
-                             <FormItem className='flex justify-between items-center'>
-                                <FormLabel>App Language</FormLabel>
-                                <FormControl>
-                                    <Select onValueChange={field.onChange} value={field.value}>
-                                        <SelectTrigger className="w-[120px]">
-                                            <SelectValue placeholder="Select language" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="English">English</SelectItem>
-                                            <SelectItem value="Urdu">Urdu</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </FormControl>
-                            </FormItem>
-                        )}
-                    />
+            <Card>
+                <CardHeader>
+                    <div className='flex items-start gap-4'>
+                        <Moon className="w-6 h-6 text-primary mt-1"/>
+                        <div>
+                            <CardTitle className="text-lg">Appearance</CardTitle>
+                            <CardDescription>Customize the look and feel of the app.</CardDescription>
+                        </div>
+                    </div>
+                </CardHeader>
+                <CardContent>
                     <FormField
                         control={form.control}
-                        name="voicePreference"
+                        name="theme"
                         render={({ field }) => (
-                             <FormItem className='flex justify-between items-center'>
-                                <FormLabel>Voice Preference</FormLabel>
+                            <FormItem className='flex justify-between items-center'>
+                                <FormLabel>Theme</FormLabel>
                                 <FormControl>
                                     <Select onValueChange={field.onChange} value={field.value}>
                                         <SelectTrigger className="w-[120px]">
-                                            <SelectValue placeholder="Select voice" />
-                                        </Trigger>
+                                            <SelectValue placeholder="Select theme" />
+                                        </SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="Male">Male</SelectItem>
-                                            <SelectItem value="Female">Female</SelectItem>
+                                            <SelectItem value="light">Light</SelectItem>
+                                            <SelectItem value="dark">Dark</SelectItem>
+                                            <SelectItem value="system">System</SelectItem>
                                         </SelectContent>
                                     </Select>
                                 </FormControl>
                             </FormItem>
                         )}
                     />
-                </div>
-            </SectionCard>
+                </CardContent>
+            </Card>
 
-            <SectionCard 
-                icon={Bell} 
-                title="Notifications" 
-                description="Manage how you receive notifications."
-            >
-                <FormField
-                    control={form.control}
-                    name="enableTopicSuggestions"
-                    render={({ field }) => (
-                         <FormItem className='flex justify-between items-center'>
-                            <FormLabel>Enable Topic Suggestions</FormLabel>
-                            <FormControl>
-                                <Switch
-                                    checked={field.value}
-                                    onCheckedChange={field.onChange}
-                                />
-                            </FormControl>
-                        </FormItem>
-                    )}
-                />
-            </SectionCard>
-
-            <SectionCard 
-                icon={Trash2} 
-                title="Data Management" 
-                description="Manage your application data."
-            >
-                <div className='flex justify-between items-center'>
-                    <div>
-                        <FormLabel>Clear Chat History</FormLabel>
-                        <p className="text-sm text-muted-foreground">This will permanently delete your conversation history.</p>
+            <Card>
+                <CardHeader>
+                    <div className='flex items-start gap-4'>
+                        <Mic className="w-6 h-6 text-primary mt-1"/>
+                        <div>
+                            <CardTitle className="text-lg">Voice & Language</CardTitle>
+                            <CardDescription>Set your preferred language and voice for interactions.</CardDescription>
+                        </div>
                     </div>
-                    <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                            <Button variant="destructive">Clear</Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                            <AlertDialogHeader>
-                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                                This action cannot be undone. This will permanently delete your chat history.
-                            </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction onClick={handleClearHistory}>Continue</AlertDialogAction>
-                            </AlertDialogFooter>
-                        </AlertDialogContent>
-                    </AlertDialog>
-                </div>
-            </SectionCard>
+                </CardHeader>
+                <CardContent>
+                    <div className="space-y-4">
+                        <FormField
+                            control={form.control}
+                            name="language"
+                            render={({ field }) => (
+                                <FormItem className='flex justify-between items-center'>
+                                    <FormLabel>App Language</FormLabel>
+                                    <FormControl>
+                                        <Select onValueChange={field.onChange} value={field.value}>
+                                            <SelectTrigger className="w-[120px]">
+                                                <SelectValue placeholder="Select language" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="English">English</SelectItem>
+                                                <SelectItem value="Urdu">Urdu</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </FormControl>
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="voicePreference"
+                            render={({ field }) => (
+                                <FormItem className='flex justify-between items-center'>
+                                    <FormLabel>Voice Preference</FormLabel>
+                                    <FormControl>
+                                        <Select onValueChange={field.onChange} value={field.value}>
+                                            <SelectTrigger className="w-[120px]">
+                                                <SelectValue placeholder="Select voice" />
+                                            </Trigger>
+                                            <SelectContent>
+                                                <SelectItem value="Male">Male</SelectItem>
+                                                <SelectItem value="Female">Female</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </FormControl>
+                               - </FormItem>
+                            )}
+                        />
+                    </div>
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <div className='flex items-start gap-4'>
+                        <Bell className="w-6 h-6 text-primary mt-1"/>
+                        <div>
+                            <CardTitle className="text-lg">Notifications</CardTitle>
+                            <CardDescription>Manage how you receive notifications.</CardDescription>
+                        </div>
+                    </div>
+                </CardHeader>
+                <CardContent>
+                    <FormField
+                        control={form.control}
+                        name="enableTopicSuggestions"
+                        render={({ field }) => (
+                            <FormItem className='flex justify-between items-center'>
+                                <FormLabel>Enable Topic Suggestions</FormLabel>
+                                <FormControl>
+                                    <Switch
+                                        checked={field.value}
+                                        onCheckedChange={field.onChange}
+                                    />
+                                </FormControl>
+                            </FormItem>
+                        )}
+                    />
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <div className='flex items-start gap-4'>
+                        <Trash2 className="w-6 h-6 text-primary mt-1"/>
+                        <div>
+                            <CardTitle className="text-lg">Data Management</CardTitle>
+                            <CardDescription>Manage your application data.</CardDescription>
+                        </div>
+                    </div>
+                </CardHeader>
+                <CardContent>
+                    <div className='flex justify-between items-center'>
+                        <div>
+                            <FormLabel>Clear Chat History</FormLabel>
+                            <p className="text-sm text-muted-foreground">This will permanently delete your conversation history.</p>
+                        </div>
+                        <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                                <Button variant="destructive">Clear</Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    This action cannot be undone. This will permanently delete your chat history.
+                                </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={handleClearHistory}>Continue</AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
+                    </div>
+                </CardContent>
+            </Card>
 
           </form>
         </Form>
