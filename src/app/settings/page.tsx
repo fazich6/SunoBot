@@ -28,22 +28,24 @@ const settingsSchema = z.object({
 
 type SettingsFormValues = z.infer<typeof settingsSchema>;
 
-const SectionCard = ({ icon: Icon, title, description, children }: { icon: React.ElementType, title: string, description: string, children: React.ReactNode }) => (
-    <Card>
-        <CardHeader>
-            <div className='flex items-start gap-4'>
-                <Icon className="w-6 h-6 text-primary mt-1"/>
-                <div>
-                    <CardTitle className="text-lg">{title}</CardTitle>
-                    <CardDescription>{description}</CardDescription>
+function SectionCard({ icon: Icon, title, description, children }: { icon: React.ElementType, title: string, description: string, children: React.ReactNode }) {
+    return (
+        <Card>
+            <CardHeader>
+                <div className='flex items-start gap-4'>
+                    <Icon className="w-6 h-6 text-primary mt-1"/>
+                    <div>
+                        <CardTitle className="text-lg">{title}</CardTitle>
+                        <CardDescription>{description}</CardDescription>
+                    </div>
                 </div>
-            </div>
-        </CardHeader>
-        <CardContent>
-            {children}
-        </CardContent>
-    </Card>
-);
+            </CardHeader>
+            <CardContent>
+                {children}
+            </CardContent>
+        </Card>
+    );
+}
 
 export default function SettingsPage() {
   const { user, isUserLoading } = useUser();
