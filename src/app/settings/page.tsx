@@ -211,7 +211,7 @@ export default function SettingsPage() {
                                             </SelectContent>
                                         </Select>
                                     </FormControl>
-                               - </FormItem>
+                                </FormItem>
                             )}
                         />
                     </div>
