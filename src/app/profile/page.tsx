@@ -10,9 +10,10 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { useUser, useFirestore, useDoc, useMemoFirebase, setDocumentNonBlocking } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, LogOut } from 'lucide-react';
+import { Loader2, LogOut, Settings } from 'lucide-react';
 import { getAuth } from 'firebase/auth';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 const profileSchema = z.object({
   firstName: z.string().min(1, 'First name is required'),
@@ -27,6 +28,7 @@ export default function ProfilePage() {
   const firestore = useFirestore();
   const auth = getAuth();
   const { toast } = useToast();
+  const router = useRouter();
 
   const userDocRef = useMemoFirebase(() => (user && !user.isAnonymous ? doc(firestore, 'users', user.uid) : null), [user, firestore]);
   const { data: profileData, isLoading: isProfileLoading } = useDoc<ProfileFormValues>(userDocRef);
@@ -89,6 +91,9 @@ export default function ProfilePage() {
       <header className="p-4 border-b flex justify-between items-center">
         <h1 className="text-xl font-bold text-center">Profile</h1>
         <div>
+            <Button variant="ghost" size="icon" onClick={() => router.push('/settings')}>
+                <Settings />
+            </Button>
             <Button variant="ghost" size="icon" onClick={handleLogout}>
                 <LogOut />
             </Button>
