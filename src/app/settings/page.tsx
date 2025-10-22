@@ -184,7 +184,7 @@ export default function SettingsPage() {
                                         <Select onValueChange={field.onChange} value={field.value}>
                                             <SelectTrigger className="w-[120px]">
                                                 <SelectValue placeholder="Select language" />
-                                            </SelectTrigger>
+                                            </Trigger>
                                             <SelectContent>
                                                 <SelectItem value="English">English</SelectItem>
                                                 <SelectItem value="Urdu">Urdu</SelectItem>
@@ -201,7 +201,7 @@ export default function SettingsPage() {
                                 <FormItem className='flex justify-between items-center'>
                                     <FormLabel>Voice Preference</FormLabel>
                                     <FormControl>
-                                        <Select onValueChange={field.onChange} value={field.value}>
+                                        <Select onValuechange={field.onChange} value={field.value}>
                                             <SelectTrigger className="w-[120px]">
                                                 <SelectValue placeholder="Select voice" />
                                             </Trigger>
