@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -66,11 +66,11 @@ export default function SettingsPage() {
     }
   }, [settingsData, form]);
 
-  const onSubmit = (data: SettingsFormValues) => {
+  const onSubmit = useCallback((data: SettingsFormValues) => {
     if (!settingsDocRef) return;
     setDocumentNonBlocking(settingsDocRef, data, { merge: true });
     toast({ title: 'Settings Saved', description: 'Your preferences have been updated.' });
-  };
+  }, [settingsDocRef, toast]);
   
   // This effect listens for changes in the form and saves them automatically
   useEffect(() => {
