@@ -1,33 +1,4 @@
 import type {NextConfig} from 'next';
-import withPWA from '@ducanh2912/next-pwa';
-
-const pwaConfig = withPWA({
-  dest: 'public',
-  register: true,
-  skipWaiting: true,
-  disable: process.env.NODE_ENV === 'development',
-  manifest: {
-    name: 'SunoBot',
-    short_name: 'SunoBot',
-    description: 'Your Bilingual AI Health & Life Assistant',
-    start_url: '/',
-    display: 'standalone',
-    background_color: '#F4E9E5',
-    theme_color: '#FF6B35',
-    icons: [
-      {
-        src: '/icon-192x192.png',
-        sizes: '192x192',
-        type: 'image/png',
-      },
-      {
-        src: '/icon-512x512.png',
-        sizes: '512x512',
-        type: 'image/png',
-      },
-    ],
-  },
-});
 
 const nextConfig: NextConfig = {
   /* config options here */
@@ -73,4 +44,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default pwaConfig(nextConfig);
+export default nextConfig;
