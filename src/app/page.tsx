@@ -1,6 +1,6 @@
 export default function HomePage() {
   return (
-    <div style={{ textAlign: 'center', marginTop: '50px', fontFamily: 'Poppins, sans-serif' }}>
+    <div style={{ textAlign: 'center', marginTop: '50px' }}>
       <h1>Welcome to SunoBot 👋</h1>
       <p>This is your AI assistant in Urdu and English.</p>
       <div style={{ marginTop: '20px' }}>
