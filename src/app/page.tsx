@@ -13,6 +13,7 @@ export default function Home() {
     if (!isUserLoading && user) {
       router.replace('/chat');
     }
+    // If there's no user and we are not loading, the AuthLayout will handle showing the login page.
   }, [isUserLoading, user, router]);
 
   // You can show a loader here while redirecting

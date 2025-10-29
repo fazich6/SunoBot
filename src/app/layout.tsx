@@ -3,8 +3,8 @@ import { Toaster } from "@/components/ui/toaster"
 import { FirebaseClientProvider } from '@/firebase';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import './globals.css';
-import AuthLayout from '@/components/AuthLayout';
-import AppLayout from '@/components/AppLayout'; // Import the new AppLayout
+import AuthLayout from './AuthLayout';
+import AppLayout from '@/components/AppLayout';
 
 export const metadata: Metadata = {
   title: 'SunoBot',
@@ -31,7 +31,6 @@ export default function RootLayout({
         <FirebaseClientProvider>
           <ThemeProvider>
             <AuthLayout>
-              {/* Wrap the children in the new AppLayout */}
               <AppLayout>
                 {children}
               </AppLayout>
