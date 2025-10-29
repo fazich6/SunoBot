@@ -53,7 +53,6 @@ export default function ProfilePage() {
   const onSubmit = (data: ProfileFormValues) => {
     if (!userDocRef) return;
     
-    // Create a date string only if it's a new profile
     const createdAt = profileData?.createdAt || new Date().toISOString();
 
     setDocumentNonBlocking(userDocRef, { ...data, createdAt }, { merge: true });
@@ -63,6 +62,7 @@ export default function ProfilePage() {
   const handleLogout = async () => {
     await auth.signOut();
     toast({ title: 'Logged Out', description: 'You have been successfully logged out.' });
+    router.push('/login');
   }
 
   const isLoading = isUserLoading || isProfileLoading;
@@ -89,7 +89,7 @@ export default function ProfilePage() {
   return (
     <div className="flex flex-col h-full bg-background">
       <header className="p-4 border-b flex justify-between items-center">
-        <h1 className="text-xl font-bold text-center">Profile</h1>
+        <h1 className="text-xl font-bold">Profile</h1>
         <div>
             <Button variant="ghost" size="icon" onClick={() => router.push('/settings')}>
                 <Settings />

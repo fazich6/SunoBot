@@ -4,6 +4,7 @@ import { FirebaseClientProvider } from '@/firebase';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import './globals.css';
 import AuthLayout from '@/components/AuthLayout';
+import AppLayout from '@/components/AppLayout'; // Import the new AppLayout
 
 export const metadata: Metadata = {
   title: 'SunoBot',
@@ -30,7 +31,10 @@ export default function RootLayout({
         <FirebaseClientProvider>
           <ThemeProvider>
             <AuthLayout>
-              {children}
+              {/* Wrap the children in the new AppLayout */}
+              <AppLayout>
+                {children}
+              </AppLayout>
             </AuthLayout>
             <Toaster />
           </ThemeProvider>
