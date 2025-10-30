@@ -3,7 +3,6 @@ export default function ProfilePage() {
     <div style={{ textAlign: 'center', marginTop: '50px' }}>
         <h1>Profile Page</h1>
         <p>User profile information will be here.</p>
-        <a href="/">Go Home</a>
     </div>
   );
 }
