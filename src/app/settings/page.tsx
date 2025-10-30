@@ -1,9 +1,8 @@
-// This page is temporarily disabled to fix the routing issue.
-// We will restore it once the baseline is working.
 export default function SettingsPage() {
   return (
-    <div style={{ textAlign: 'center', marginTop: '50px', fontFamily: 'Poppins, sans-serif' }}>
+    <div style={{ textAlign: 'center', marginTop: '50px' }}>
         <h1>Settings Page</h1>
+        <p>Application settings will be here.</p>
         <a href="/">Go Home</a>
     </div>
   );
