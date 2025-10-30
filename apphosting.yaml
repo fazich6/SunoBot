@@ -1,5 +1,7 @@
 runConfig:
   runCommand: npm run start
+  installCommand: npm install --legacy-peer-deps
+
 env:
   - variable: NODE_ENV
     value: production
