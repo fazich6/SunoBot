@@ -1,10 +1,5 @@
 import './globals.css';
 import { ReactNode } from 'react';
-import { FirebaseClientProvider } from '@/firebase';
-import AppLayout from '@/components/AppLayout';
-import AuthLayout from './AuthLayout';
-import { ThemeProvider } from '@/components/ThemeProvider';
-import { Toaster } from '@/components/ui/toaster';
 
 export const metadata = {
   title: 'SunoBot',
@@ -13,19 +8,8 @@ export const metadata = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body>
-        <FirebaseClientProvider>
-          <ThemeProvider>
-            <AuthLayout>
-              <AppLayout>
-                {children}
-              </AppLayout>
-            </AuthLayout>
-            <Toaster />
-          </ThemeProvider>
-        </FirebaseClientProvider>
-      </body>
+    <html lang="en">
+      <body>{children}</body>
     </html>
   );
 }
